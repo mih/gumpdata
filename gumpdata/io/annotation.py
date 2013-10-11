@@ -19,7 +19,7 @@ def get_scene_boundaries(basedir):
     list(float)
       Timestamps are given in seconds.
     """
-    fname = opj(basedir, 'stimulus', 'scenes.csv')
+    fname = opj(basedir, 'stimulus', 'annotations', 'scenes.csv')
     cr = csv.reader(open(fname))
     ts = [float(line[0]) for line in cr]
     return ts
@@ -40,7 +40,8 @@ def get_german_audiodescription_transcript(basedir):
       corresponding transcripts in UTF8 encoding.
 
     """
-    fname = opj(basedir, 'stimulus', 'german_audio_description.csv')
+    fname = opj(basedir, 'stimulus', 'annotations',
+                'german_audio_description.csv')
     cr = csv.reader(open(fname))
     transcripts = []
     ts = []
