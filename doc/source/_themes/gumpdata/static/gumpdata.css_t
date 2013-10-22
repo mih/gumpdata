@@ -1,2 +1,6 @@
 @import url("basic.css");
 @import url("agogo.css");
+
+th.field-name {
+  white-space: nowrap;
+}

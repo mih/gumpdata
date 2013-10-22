@@ -1,3 +1,5 @@
+__version__ = '0.1'
+
 # list of all task IDs in the dataset
 tasks = [1]
 # list of subjects for all tasks
