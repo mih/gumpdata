@@ -45,7 +45,7 @@ html:
 	PYTHONPATH=..:$(PYTHONPATH) sphinx-autogen \
 			   -t templates \
 			   -o source/generated source/*.rst
-	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
+	PYTHONPATH=..:$(PYTHONPATH) $(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
