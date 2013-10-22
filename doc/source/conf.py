@@ -18,6 +18,10 @@ import sys, os
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 sys.path.insert(0, os.path.abspath('../..'))
 
+print os.path.abspath(os.curdir)
+
+print os.listdir(os.curdir)
+
 autosummary_generate=True
 
 # -- General configuration -----------------------------------------------------
