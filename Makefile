@@ -19,9 +19,9 @@ else
 endif
 
 htmldoc:
-	PYTHONPATH=..:$(LPYTHONPATH) sphinx-autogen \
-			   -t doc/templates \
-			   -o doc/source/generated doc/source/*.rst
+	#PYTHONPATH=..:$(LPYTHONPATH) sphinx-autogen \
+	#	   -t doc/templates \
+	#	   -o doc/source/generated doc/source/*.rst
 	PYTHONPATH=..:$(LPYTHONPATH) $(MAKE) -C doc html BUILDDIR=$(BUILDDIR)
 
 clean:
