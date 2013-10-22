@@ -10,12 +10,12 @@ def get_scene_boundaries(basedir):
     """Returns the boundaries between scenes in movie time
 
     Parameters
-    ==========
+    ----------
     basedir : path
       Base path of the dataset.
 
     Returns
-    =======
+    -------
     list(float)
       Timestamps are given in seconds.
     """
@@ -28,12 +28,12 @@ def get_german_audiodescription_transcript(basedir):
     """Returns the transcript with star and end timestamps
 
     Parameters
-    ==========
+    ----------
     basedir : path
       Base path of the dataset.
 
     Returns
-    =======
+    -------
     array(float, float), list(str)
       The first return value is a 2-column array with start and end timestamp
       of each narration sequence. The second return value is a list with the

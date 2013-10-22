@@ -9,7 +9,7 @@ def get_run_physio_data(basedir, subj, task, run, sensors=None):
     """Returns the physiological recording for a particular run
 
     Parameters
-    ==========
+    ----------
     basedir : path
       Base path of the dataset.
     subj : str
@@ -22,7 +22,7 @@ def get_run_physio_data(basedir, subj, task, run, sensors=None):
       Selection and order of values to return.
 
     Returns
-    =======
+    -------
     array
       Array of floats -- one row per sample (100Hz), if ``sensors`` is None,
       4 columns are returned (trigger track, respiratory trace, cardiac trace,
@@ -51,7 +51,7 @@ def get_physio_data(basedir, subj, task, runs=(1,2,3,4,5,6,7,8),
     intervals.
 
     Parameters
-    ==========
+    ----------
     basedir : path
       Base path of the dataset.
     subj : str
@@ -67,7 +67,7 @@ def get_physio_data(basedir, subj, task, runs=(1,2,3,4,5,6,7,8),
       Selection and order of values to return.
 
     Returns
-    =======
+    -------
     array
       Array of floats -- one row per sample (100Hz), if ``sensors`` is None,
       4 columns are returned (trigger track, respiratory trace, cardiac trace,

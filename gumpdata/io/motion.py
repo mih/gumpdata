@@ -9,7 +9,7 @@ def get_run_motion_estimates(basedir, subj, task, run):
     """Returns the motion correction estimates for a particular run
 
     Parameters
-    ==========
+    ----------
     basedir : path
       Base path of the dataset.
     subj : str
@@ -20,7 +20,7 @@ def get_run_motion_estimates(basedir, subj, task, run):
       Run ID.
 
     Returns
-    =======
+    -------
     array
       Array of floats -- one row per fMRI volume, 6 columns (first three:
       translation X, Y, Z in mm, last three: rotation in deg)
@@ -38,7 +38,7 @@ def get_motion_estimates(basedir, subj, task, runs=(1,2,3,4,5,6,7,8),
     the end and front of adjacent runs by a configurable number of samples.
 
     Parameters
-    ==========
+    ----------
     basedir : path
       Base path of the dataset.
     subj : str
@@ -51,7 +51,7 @@ def get_motion_estimates(basedir, subj, task, runs=(1,2,3,4,5,6,7,8),
       Number of samples/volumes to truncate at the edges of adjacent runs.
 
     Returns
-    =======
+    -------
     array
       Array of floats -- one row per fMRI volume, 6 columns (first three:
       translation X, Y, Z in mm, last three: rotation in deg)
