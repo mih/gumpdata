@@ -2,7 +2,7 @@
 """
 
 import os
-from os.path import join as opj
+from os.path import join as _opj
 import numpy as np
 
 def get_run_physio_data(basedir, subj, task, run, sensors=None):
@@ -29,7 +29,7 @@ def get_run_physio_data(basedir, subj, task, run, sensors=None):
       oxygen saturation). If ``sensors`` is specified the order of columns
       matches the order of the ``sensors`` sequence.
     """
-    fname = opj(basedir, 'sub%s' % subj, 'physio', 'task%.3i_run%.3i' % (task, run),
+    fname = _opj(basedir, 'sub%s' % subj, 'physio', 'task%.3i_run%.3i' % (task, run),
                 'physio.txt.gz')
     sensor_map = {
         'trigger': 0,

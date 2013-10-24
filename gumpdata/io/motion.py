@@ -2,7 +2,7 @@
 """
 
 import os
-from os.path import join as opj
+from os.path import join as _opj
 import numpy as np
 
 def get_run_motion_estimates(basedir, subj, task, run):
@@ -25,7 +25,7 @@ def get_run_motion_estimates(basedir, subj, task, run):
       Array of floats -- one row per fMRI volume, 6 columns (first three:
       translation X, Y, Z in mm, last three: rotation in deg)
     """
-    fname = opj(basedir, 'sub%s' % subj, 'BOLD', 'task%.3i_run%.3i' % (task, run),
+    fname = _opj(basedir, 'sub%s' % subj, 'BOLD', 'task%.3i_run%.3i' % (task, run),
                 'bold_dico_moco.txt')
     data = np.loadtxt(fname)
     return data
