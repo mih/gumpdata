@@ -5,6 +5,8 @@ import os
 from os.path import join as _opj
 import numpy as np
 
+__all__ = ['get_run_motion_estimates', 'get_run_motion_estimates']
+
 def get_run_motion_estimates(basedir, subj, task, run):
     """Returns the motion correction estimates for a particular run
 

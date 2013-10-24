@@ -5,6 +5,8 @@ import os
 from os.path import join as _opj
 import numpy as np
 
+__all__ = ['get_run_physio_data', 'get_run_physio_data']
+
 def get_run_physio_data(basedir, subj, task, run, sensors=None):
     """Returns the physiological recording for a particular run
 

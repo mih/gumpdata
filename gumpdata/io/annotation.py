@@ -6,6 +6,8 @@ import csv
 from os.path import join as _opj
 import numpy as np
 
+__all__ = ['get_scene_boundaries', 'get_german_audiodescription_transcript']
+
 def get_scene_boundaries(basedir):
     """Returns the boundaries between scenes in movie time
 
