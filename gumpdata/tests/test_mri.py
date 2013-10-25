@@ -30,8 +30,6 @@ def test_fmri():
                     continue
                 r_shape.append(img.get_shape())
                 nt.assert_equal(nvols[r-1], img.get_shape()[3])
-                if not nvols[r-1] == img.get_shape()[3]:
-                    print s, r, flavor, nvols[r-1], img.get_shape()[3]
             nt.assert_equal(1, len(np.unique(r_shape)), msg="shape equal r%i" % r)
 
 def test_dti():
