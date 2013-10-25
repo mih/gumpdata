@@ -1,11 +1,14 @@
 
 import os
 import nose.tools as nt
-import gumpdata.io.motion as moco
+from gumpdata import GumpData
+import gumpdata
 
-subjs = ['%.3i' % i for i in range(1, 21)] + ['phantom']
-runs = range(1,9)
-nvols = (451, 441, 438, 488, 462, 439, 542, 338)
+gd = GumpData()
+
+subjs = gumpdata.subjs_by_task[1]
+runs = range(1,len(gumpdata.n_fmri_volumes_by_task[1]) + 1)
+nvols = gumpdata.n_fmri_volumes_by_task[1]
 
 def test_run_shape():
     """Tests for correct shape/size of all MOCO data"""
@@ -14,10 +17,10 @@ def test_run_shape():
             if s == '010':
                 # no moco data for subj 010
                 nt.assert_raises(IOError,
-                                 moco.get_run_motion_estimates,
-                                 os.curdir, s, 1, r)
+                                 gd.get_run_motion_estimates,
+                                 s, 1, r)
                 continue
-            data = moco.get_run_motion_estimates(os.curdir, s, 1, r)
+            data = gd.get_run_motion_estimates(s, 1, r)
             if s == '004' and r == 8:
                 nt.assert_equal(data.shape, (263, 6))
             else:
@@ -25,11 +28,10 @@ def test_run_shape():
 
 def test_run_merge_truncation():
     """Test for correct truncation of run boundaries during merge"""
-    nt.assert_equal(moco.get_motion_estimates(os.curdir, '002', 1).shape,
+    nt.assert_equal(gd.get_motion_estimates(2, 1).shape,
                     (3543,6))
     # this will cause a warning, but should work nevertheless
     from warnings import warn
     warn("ignore warning below -- only for testing purposes")
-    nt.assert_equal(moco.get_motion_estimates(os.curdir, '002', 1,
-                                            truncate=10).shape,
+    nt.assert_equal(gd.get_motion_estimates(2, 1, truncate=10).shape,
                     (3459,6))

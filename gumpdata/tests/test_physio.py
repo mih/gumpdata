@@ -2,9 +2,8 @@ import os
 import numpy as np
 import nose.tools as nt
 import gumpdata
-import gumpdata.io.physio as ph
 
-
+gd = gumpdata.GumpData()
 subjs = gumpdata.subjs_by_task[1]
 nvols = gumpdata.n_fmri_volumes_by_task[1]
 runs = range(1,len(nvols) + 1)
@@ -21,7 +20,7 @@ def test_run_shape():
             # no physio data for phantom
             continue
         for r in runs:
-            data = ph.get_run_physio_data(os.curdir, s, 1, r)
+            data = gd.get_run_physio_data(s, 1, r)
             triggers = data.T[0].nonzero()[0]
             ntriggers = len(triggers)
             # check n triggers
