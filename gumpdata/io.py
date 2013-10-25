@@ -43,7 +43,7 @@ class GumpData(object):
         elif flavor == 'dico':
             fname = 'bold_dico.nii.gz'
         else:
-            fname = 'bold_dico_%s.nii.gz'
+            fname = 'bold_dico_%s.nii.gz' % flavor
         fname = _opj(self._basedir, _sub2id(subj),
                      'BOLD', _taskrun(task, run),
                      fname)
