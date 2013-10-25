@@ -247,7 +247,7 @@ class GumpData(object):
           oxygen saturation). If ``sensors`` is specified the order of columns
           matches the order of the ``sensors`` sequence.
         """
-        fname = _opj(self._basedir, 'sub%s' % subj, 'physio', _taskrun(task, run),
+        fname = _opj(self._basedir, _sub2id(subj), 'physio', _taskrun(task, run),
                     'physio.txt.gz')
         sensor_map = {
             'trigger': 0,
@@ -301,18 +301,24 @@ class GumpData(object):
             trigger_column = 0
         data = []
         for i, r in enumerate(runs):
-            rdata = get_run_physio_data(self._basedir, subj, task, r, sensors=sensors)
-            triggers = rdata.T[trigger_column].nonzero()[0]
-            if i > 0:
-                # remove desired number samples at the front (except for first run)
-                rdata = rdata[triggers[truncate]:]
+            rdata = self.get_run_physio_data(subj, task, r, sensors=sensors)
+            if len(rdata.shape) < 2:
+                triggers = rdata.nonzero()[0]
+            else:
+                triggers = rdata.T[trigger_column].nonzero()[0]
             if i < len(runs) - 1:
                 # remove desired number samples at the end (except for last run)
                 rdata = rdata[:triggers[-truncate]]
+            if i > 0:
+                # remove desired number samples at the front (except for first run)
+                rdata = rdata[triggers[truncate]:]
             if added_trigger:
                 data.append(rdata[:, trigger_mask])
             else:
-                data.append(rdata)
+                if len(rdata.shape) < 2:
+                    data.append(rdata[None].T)
+                else:
+                    data.append(rdata)
         return np.vstack(data)
 
     def get_scene_boundaries(self):
