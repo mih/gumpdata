@@ -1,0 +1,91 @@
+#!/usr/bin/python
+
+# mkfg_stimulusqa out.svg logfile ....
+
+import sys
+
+target_tr = 2.0
+ignored_triggers = 0
+
+start_delay = []
+movie_length_deviation = []
+
+seg = []
+trigger_dists = []
+
+for in_file in sys.argv[2:]:
+    trial_info = None
+    last_trigger = None
+    seg_start_trigger = None
+    seg_start = None
+    catch_start_trigger = False
+    catch_movie_start = False
+    for line in open(in_file):
+        time, channel, payload = line.split('\t')
+        time = float(time)
+        payload = payload.strip()
+        if trial_info is None and payload.startswith('New trial'):
+            trial_info = eval(':'.join(payload.split(':')[1:]))
+            #print 'Doing segment: %i' % trial_info['segment_id']
+            continue
+        if trial_info is None:
+            continue
+        if channel == 'DATA' and payload == 'Keypress: t':
+            if catch_start_trigger:
+                seg_start_trigger = time
+                last_trigger = time
+                catch_start_trigger = False
+                catch_movie_start = True
+            else:
+                dist_to_last = target_tr - (time - last_trigger)
+                if abs(dist_to_last) > .2:
+                    # more than 200ms late -- cable was pulled
+                    print 'Missing trigger (time since last: %fs)' % dist_to_last
+                    ignored_triggers += 1
+                else:
+                    trigger_dists.append(dist_to_last * 1000) #in ms
+                last_trigger = time
+        if catch_movie_start and channel == 'EXP' and payload == 'Started presenting movie_clip':
+            catch_movie_start = False
+            seg_start = time
+            start_delay.append((seg_start - seg_start_trigger) * 1000)
+        if payload == 'Started presenting wait_for_it':
+            catch_start_trigger = True
+        if payload == 'Stopped presenting movie_clip':
+            movie_length_deviation.append((trial_info['movie_segment_duration']
+                                           - (time - seg_start)) * 1000)
+            seg_start = None
+            trial_info = None
+
+import pylab as pl
+import numpy as np
+
+pl.figure(figsize=(15,5))
+ax=pl.subplot(1,3,1)
+pl.hist(trigger_dists, bins=20, normed=True, color='0.6')
+pl.title('deviation from target\ntrigger distance') # (ignored: %i)' % ignored_triggers)
+pl.text(0.05, 0.9, "A", size=18, weight='bold', transform=ax.transAxes)
+pl.xlabel('time in milliseconds')
+
+ax=pl.subplot(1,3,2)
+pl.hist(start_delay, bins=10, normed=True, color='0.6')
+pl.title('reported stimulus\nonset latency')
+pl.xlabel('time in milliseconds')
+pl.text(0.05, 0.9, "B", size=18, weight='bold', transform=ax.transAxes)
+pl.xlim((0, 100))
+
+#pl.figure()
+#pl.hist(movie_length_deviation, bins=10, normed=True)
+#pl.title('reported stimulus duration deviation')
+#pl.xlabel('deviation in milliseconds')
+#pl.xlim((0, 100))
+
+ax=pl.subplot(1,3,3)
+pl.hist(np.array(start_delay) - np.array(movie_length_deviation),
+        bins=20, normed=True, color='0.6')
+pl.title('reported stimulus duration\ndeviation from start trigger')
+pl.xlabel('time in milliseconds')
+pl.text(0.05, 0.9, "C", size=18, weight='bold', transform=ax.transAxes)
+pl.xlim((0, 10))
+
+pl.savefig(sys.argv[1])
