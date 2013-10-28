@@ -27,6 +27,9 @@ Repository content
   Scripts used to convert data from its raw into the released form
 ``scripts/figures/``
   Scripts to produce figures in the data paper
+``scripts/similarity_analysis/``
+  Scripts to perform the univariate and multivariate pattern similarity analysis
+  in the data paper
 
 .. link list
 

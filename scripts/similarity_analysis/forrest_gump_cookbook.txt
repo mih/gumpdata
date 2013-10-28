@@ -1,0 +1,88 @@
+Cookbook
+
+Prepare PyMVPA dataset for all subjects using forrest_gump_dataset.py (req. working memory ca. 6GB)
+	Command:
+		python forrest_gump_dataset.py -subj sub001
+		...
+		python forrest_gump_dataset.py -subj sub020
+	Output: *subj*_z1_12_*align'.hdf5' in dataset
+		
+For the multivariate consistency analysis run forrest_gump_multivariate.py for all subject pairs
+	for linear alignment (req. working memory ca. 16GB)
+		Prepare consistency maps (153 pairwise maps after exclusion of sub004 and sub010)
+			Command:
+				python forrest_gump_multivariate.py -subj1 sub001 -subj2 sub002 -nproc 4 -align linear
+				...
+				python forrest_gump_multivariate.py -subj1 sub019 -subj2 sub020 -nproc 4 -align linear
+			Output in maps: 
+				sl_*subj1*_*subj2*_s4_sparse2_linear_multivariate.nii.gz
+		Group statistics
+			Command:
+				python forrest_gump_groupresults.py -typ multivariate -align linear
+			Output in results:
+				coactivation_linear_multivariate.nii.gz 
+				mean_coactivation_linear_multivariate.nii.gz
+				mean_coactivation_linear_multivariate_mni.nii.gz
+				mean_coactivation_linear_multivariate_pvalues.nii.gz
+				mean_coactivation_linear_multivariate_pvalues_mni.nii.gz
+				cumhist_coactivation_linear_multivariate.pdf
+				
+	for non-linear alignment (req. working memory ca. 19GB)
+		Prepare consistency maps (153 pairwise maps after exclusion of sub004 and sub010)
+			Command:
+				python forrest_gump_multivariate.py -subj1 sub001 -subj2 sub002 -nproc 4 -align nonlinear
+				...
+				python forrest_gump_multivariate.py -subj1 sub019 -subj2 sub020 -nproc 4 -align nonlinear
+			Output in maps: 
+				sl_*subj1*_*subj2*_s4_sparse2_nonlinear_multivariate.nii.gz
+		Group statistics
+			Command:
+				python forrest_gump_groupresults.py -typ multivariate -align nonlinear
+			Output in results:
+				coactivation_linear_multivariate.nii.gz 
+				mean_coactivation_nonlinear_multivariate.nii.gz
+				mean_coactivation_nonlinear_multivariate_mni.nii.gz
+				mean_coactivation_nonlinear_multivariate_pvalues.nii.gz
+				mean_coactivation_nonlinear_multivariate_pvalues_mni.nii.gz
+				cumhist_coactivation_nonlinear_multivariate.pdf
+
+
+For the univariate inter-subject correlation analysis run forrest_gump_univariate.py for all subject pairs
+	for linear alignment (req. working memory ca. 16GB)
+		Prepare correlation maps (153 pairwise maps after exclusion of sub004 and sub010)
+			Command:
+				python forrest_gump_univariate.py -subj1 sub001 -subj2 sub002 -nproc 4 -align linear
+				...
+				python forrest_gump_univariate.py -subj1 sub019 -subj2 sub020 -nproc 4 -align linear
+			Output in maps: 
+				sl_*subj1*_*subj2*_s4_sparse2_linear_univariate.nii.gz 
+		Group statistics
+			Command:
+				python forrest_gump_groupresults.py -typ univariate -align linear
+			Output in results:
+				coactivation_linear_univariate.nii.gz 
+				mean_coactivation_linear_univariate.nii.gz
+				mean_coactivation_linear_univariate_mni.nii.gz
+				mean_coactivation_linear_univariate_pvalues.nii.gz
+				mean_coactivation_linear_univariate_pvalues_mni.nii.gz
+				cumhist_coactivation_linear_univariate.pdf
+				
+	for non-linear alignment (req. working memory ca. 19GB)
+		Prepare correlation maps (153 pairwise maps after exclusion of sub004 and sub010)
+			Command:
+				python forrest_gump_univariate.py -subj1 sub001 -subj2 sub002 -nproc 4 -align nonlinear
+				...
+				python forrest_gump_univariate.py -subj1 sub019 -subj2 sub020 -nproc 4 -align nonlinear
+			Output in maps: 
+				sl_*subj1*_*subj2*_s4_sparse2_nonlinear_univariate.nii.gz 
+		Group statistics
+			Command:
+				python forrest_gump_groupresults.py -typ univariate -align nonlinear
+			Output in results:
+				coactivation_nonlinear_univariate.nii.gz 
+				mean_coactivation_nonlinear_univariate.nii.gz
+				mean_coactivation_nonlinear_univariate_mni.nii.gz
+				mean_coactivation_nonlinear_univariate_pvalues.nii.gz
+				mean_coactivation_nonlinear_univariate_pvalues_mni.nii.gz
+				cumhist_coactivation_nonlinear_univariate.pdf
+				
