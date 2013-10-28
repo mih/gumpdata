@@ -1,0 +1,117 @@
+#!/usr/bin/python
+
+import numpy as np
+from scipy import signal
+import pylab as pl
+
+def find_triggers(tc):
+    onvals = tc > tc.max() * 0.8
+    ramps = np.diff(onvals.astype(int))
+    triggers = []
+    on_state = None
+    for i, r in enumerate(ramps):
+        if r == 0:
+            continue
+        elif r < 0:
+            if on_state is None:
+                triggers.append(i)
+            on_state = False
+        elif r > 0:
+            if not on_state:
+                triggers.append(i)
+            on_state = True
+    return triggers
+
+def proc_physio_run(data, expected_triggers, log):
+    trigger_pos = np.array(find_triggers(data[3]))
+    # determine median trigger distance
+    # this will allow us to distingiush 100Hz and 200Hz data
+    trigger_dist = int(np.median(np.diff(trigger_pos)))
+
+    if trigger_dist > 300:
+        print >>log, 'Downsample data to sampling rate 100Hz'
+        # 200Hz data -> downsample to 100 Hz for uniformity
+        dnew = np.zeros((len(data), data.shape[1] / 2), dtype=data.dtype)
+        for i in range(4):
+            dnew[i] = data[i][::2]
+        data = dnew
+        # convert trigger positions and distance
+        trigger_pos /= 2
+        trigger_dist /= 2
+    else:
+        print >>log, 'Sampling rate is already at 100Hz'
+
+    missing_triggers = expected_triggers - len(trigger_pos)
+    if missing_triggers < 0:
+        raise RuntimeError('found more triggers than expected -> going home')
+    elif missing_triggers > 0:
+        print >>log, 'Trigger mismatch: expected %i, found %i -> filling in' \
+                % (expected_triggers, len(trigger_pos))
+        trp = []
+        for i, tp in enumerate(trigger_pos[:-1]):
+            if (trigger_pos[i + 1] - tp) < (trigger_dist * 1.1):
+                # all good, nice timing
+                trp.append(tp)
+            else:
+                trp.append(tp)
+                nmissing = int(np.round(float(trigger_pos[i + 1] - tp) / 200)) - 1
+                print >>log, 'found %i missing triggers after %f' % (nmissing, tp)
+                trp.extend([tp + trigger_dist * m for m in range(1, nmissing + 1)])
+                missing_triggers -= nmissing
+        # append last one
+        trp.append(trigger_pos[-1])
+        if missing_triggers > 0:
+            # still some missing -> need to append at the end
+            print >>log, 'append %i missing triggers at the end' % missing_triggers
+            trp.extend([trigger_pos[-1] + trigger_dist * m
+                            for m in range(1, missing_triggers + 1)])
+        trigger_pos = trp
+
+    if expected_triggers - len(trigger_pos):
+        raise RuntimeError('trigger positioning failed (%i/%i)'
+                           % (len(trigger_pos), expected_triggers))
+
+    t_peakmarker = np.zeros(data[0].shape, np.int)
+    t_peakmarker[trigger_pos] = 1
+
+    max_duration = trigger_pos[-1] + trigger_dist
+
+    data = np.vstack((
+            #trigger
+            t_peakmarker,
+            # respiratory
+            data[0],
+            # cardiac
+            data[1],
+            # oxygen saturation
+            data[2],
+        ))
+
+    # cut timeseries from start to one trigger distance after the last
+    data = data[:, :max_duration]
+
+    return data
+
+if __name__ == '__main__':
+    import sys
+    import os
+    in_dir = sys.argv[1]
+    out_dir = sys.argv[2]
+
+    # number of triggers that should be in each run
+    trigger_n = (451, 441, 438, 488, 462, 439, 542, 338)
+
+    for i, in_file in enumerate(sorted(os.listdir(in_dir))):
+        od = '%s_run%.3i' % (out_dir, i + 1)
+        if not os.path.exists(od):
+            os.makedirs(od)
+        if len(sys.argv) >3:
+            log = open(os.path.join(od,sys.argv[3]), 'w')
+        else:
+            log = sys.stderr
+        in_file = os.path.join(in_dir, in_file)
+        out_file = os.path.join(od, 'physio.txt.gz')
+        print '%s -> %s' % (in_file, out_file)
+        data = np.loadtxt(in_file)
+        d = proc_physio_run(data, trigger_n[i], log)
+        np.savetxt(out_file, d.T)

@@ -1,0 +1,49 @@
+#!/bin/sh
+set -e
+set -u
+
+anon_txt () {
+  grep -i -v study < $1 | grep -iv subject | grep -iv series > $2
+}
+
+get_run_id () {
+     echo "$(echo $(basename $1) | sed -e 's/.*36sl_R//g' -e 's/_MoCoSeries.*//g')"
+}
+
+subj=$1
+anon_id=$2
+dcmsrc="$(readlink -f s3/data/$subj/raw/dicom/$(ls -1 s3/data/$subj/raw/dicom/ | sort| tail -n1))"
+niitmpdir='nii'
+curdir="$(pwd)"
+destdir="$curdir/openfmri.org/sub$anon_id"
+wdir=$(mktemp -d)
+convcall="mcverter -f fsl -d -n -o $niitmpdir"
+
+mkdir -p $destdir
+cd $wdir
+
+# extract dicoms
+tar -xf ${dcmsrc}
+dcmdir="$(find . -mindepth 1 -type d)/"
+angiodir="$destdir/angio"
+mkdir -p $angiodir
+# sorting to get later recorded image series overwrite previous one, if the
+# name is the same (deals with re-runs)
+$convcall -m ToF $dcmdir
+if [ -z "$(find $niitmpdir -name '*.nii')" ]; then
+  # found no files, need to look in fMRI session
+  echo "Trying 2nd DICOM set"
+  # cleanup old dicoms
+  rm -rf $dcmdir $niitmpdir
+  # get second fmri session dicoms
+  tar -xf $curdir/7T_ad/data/$subj/raw/dicom/$(ls -1 $curdir/7T_ad/data/$subj/raw/dicom | sort | tail -n1)
+  dcmdir="$(find . -mindepth 1 -type d)/"
+  $convcall -m ToF $dcmdir
+fi
+gzip -n -c $(find $niitmpdir -name '*.nii' | sort | head -n1) > $angiodir/angio001.nii.gz
+anon_txt $(find $niitmpdir -name '*info.txt' | sort | head -n1) $angiodir/angio001_dicominfo.txt
+
+# orderly exit
+rm -rf $wdir
+
+

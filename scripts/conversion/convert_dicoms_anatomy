@@ -1,0 +1,206 @@
+#!/bin/bash
+#
+# Synopsis:
+#
+#  convert_dicoms_anatomy <subject id>
+#
+# Converts DICOMs from the anatomical recording session
+#
+set -e
+set -u
+
+. /etc/fsl/fsl.sh
+
+# where is the de-face mask and template
+datadir=${DEFACE_3DMRI_DATA_DIR:-"$(pwd)/scripts/data"}
+
+anon_txt () {
+  grep -i -v study < $1 | grep -iv subject | grep -iv series > $2
+}
+
+export_defaced () {
+  $FSLDIR/bin/fslmaths ${1}_${2} -mul ${1}_defacemask $3 -odt input
+  $FSLDIR/bin/imcp ${1}_defacemask ${3}_defacemask
+}
+
+align4deface () {
+  in_file=$1
+  in_mat=$2
+  out_base=$3
+  sr=$4
+
+  $FSLDIR/bin/fslreorient2std "$in_file" ${out_base}_instd
+
+  # extract first volume as reference for 4D images
+  if [[ $($FSLDIR/bin/fslinfo ${out_base}_instd | grep '^dim4' | sed -e 's/.* //g') -gt 3 ]]; then
+    echo "Use first volume as reference for de-facing"
+    $FSLDIR/bin/fslroi ${out_base}_instd ${out_base}_instd_firstvol 0 1
+  else
+    $FSLDIR/bin/imln ${out_base}_instd ${out_base}_instd_firstvol
+  fi
+
+  # subsample highres stuff -- doesn't gain much beyond 1mm resolution
+  if [[ $(echo "$(fslinfo ${out_base}_instd_firstvol | grep '^pixdim' | head -n3 | sed -e 's/.* //g' | numbound) > 2.1" | bc) == 1 ]]; then
+    imln ${out_base}_instd_firstvol ${out_base}_in_subsamp
+  else
+    echo "Subsample for de-facing"
+    $FSLDIR/bin/fslmaths ${out_base}_instd_firstvol -subsamp2 ${out_base}_in_subsamp
+  fi
+
+  opts="-bins 256 -cost corratio -searchrx -$sr $sr -searchry -$sr $sr -searchrz -$sr $sr -dof 12"
+
+  if [ ! -z "$in_mat" ]; then
+    echo "Use given init xfm"
+    opts="-init $in_mat $opts"
+  fi
+
+  # align template to input image
+  $FSLDIR/bin/flirt -in $datadir/head_tmpl \
+    -inweight $datadir/head_tmpl_weights -ref ${out_base}_in_subsamp \
+    -omat ${out_base}.mat -out ${out_base} $opts
+
+  # project de-face mask onto reference
+  $FSLDIR/bin/flirt -in $datadir/face_teeth_ear_mask -applyxfm \
+     -init ${out_base}.mat -out ${out_base}_mask_aligned -interp trilinear \
+      -ref ${out_base}_instd_firstvol
+
+  # threshold de-face mask and store as output
+  $FSLDIR/bin/fslmaths ${out_base}_mask_aligned -thr 0.5 -bin \
+     ${out_base}_defacemask -odt char
+}
+
+siftnfix_mag_phase () {
+  dcmdir=$1
+  series=$2
+  # get the relevant dicoms out
+  mkdir -p ${series}_phase
+  mkdir -p ${series}_mag
+  for i in $dcmdir/*; do
+    [ "$(get_series_nmbr $i)" != "$series" ] && continue
+    magphase="$(get_mag_vs_phase $i)"
+    if [ "$magphase" = 'M' ]; then ln -s ../$i ${series}_mag/
+    elif [ "$magphase" = 'P' ]; then
+      ln -s ../$i ${series}_phase/
+      ss="$(get_scale_slope $i)"
+      rs="$(get_rescale_slope $i)"
+      ri="$(get_rescale_intercept $i)"
+      # full rescale to FP
+      dcmodify -i "(0028,1052)=$(echo "scale=10; $ri/($rs * $ss)" | bc)" \
+               -i "(0028,1053)=$(echo "scale=10; 1.0/$ss" | bc)" \
+               $i 2> /dev/null
+      # partial rescale to DV
+      #dcmodify -i "(0028,1052)=$ri" -i "(0028,1053)=$rs" $i 2> /dev/null
+    else echo "neither magn nor phase image (maybe RAW?)"
+    fi
+  done
+}
+
+get_series_nmbr () {
+  dcmdump -s +L +M $1 +P '0020,0011' | sed -e "/\[/s/.*\[\(.*\)\]/\1/" -e 's/[ ]*#.*//g'
+}
+
+get_mag_vs_phase () {
+  dcmdump -s +L +M $1 +P '2005,1011' | sed -e "/\[/s/.*\[\(.*\)\]/\1/" -e 's/[ ]*#.*//g'
+}
+
+get_scale_slope () {
+  dcmdump -s +L +M $1 +P '2005,100e' | sed -e 's/.*FL //g' -e 's/[ ]*#.*//g'
+}
+
+get_rescale_slope () {
+  dcmdump -s +L +M $1 +P '2005,140a' | sed -e 's/.*DS \[//g' -e 's/\][ ]*#.*//g'
+}
+
+get_rescale_intercept () {
+  dcmdump -s +L +M $1 +P '2005,1409' | sed -e 's/.*DS \[//g' -e 's/\][ ]*#.*//g'
+}
+
+
+subj=$1
+anon_id=$2
+dcmsrc="$(for src in $(ls -1 anatomy/data/$subj/raw/dicom/*.tar* | sort |tail -n1); do readlink -f $src ; done)"
+niitmpdir='nii'
+curdir="$(pwd)"
+destdir="$curdir/openfmri.org/sub$anon_id"
+wdir=$(mktemp -d)
+convcall="mcverter -f fsl -d -n -o $niitmpdir"
+
+# directories to be filled
+for i in anatomy/other fieldmap dti; do
+  mkdir -p $destdir/$i
+done
+
+cd $wdir
+
+# extract dicoms
+tar -xf ${dcmsrc}
+dcmdir="$(find . -mindepth 1 -type d)/"
+# T1w
+$convcall -m sT1W $dcmdir
+align4deface $(find $niitmpdir -name '*.nii') '' ${wdir}/t1w 20
+anon_txt $(find $niitmpdir -name '*_info.txt') $destdir/anatomy/highres001_dicominfo.txt
+export_defaced ${wdir}/t1w instd $destdir/anatomy/highres001
+rm -rf $niitmpdir
+
+# T2w
+$convcall -m sT2W $dcmdir
+align4deface $(find $niitmpdir -name '*.nii') ${wdir}/t1w.mat ${wdir}/t2w 0
+anon_txt $(find $niitmpdir -name '*_info.txt') $destdir/anatomy/other/t2w001_dicominfo.txt
+export_defaced ${wdir}/t2w instd $destdir/anatomy/other/t2w001
+rm -rf $niitmpdir
+
+# SWI (only the data, not the projections)
+siftnfix_mag_phase $dcmdir 501
+# magnitude image
+$convcall 501_mag/
+anon_txt $(find $niitmpdir -name '*_info.txt' | sort -n | head -n1) $destdir/anatomy/other/swi001_mag_dicominfo.txt
+align4deface $(find $niitmpdir -name '*.nii' | sort -n | head -n1) \
+   ${wdir}/t2w.mat ${wdir}/swi_mag 0
+export_defaced ${wdir}/swi_mag instd $destdir/anatomy/other/swi001_mag
+rm -rf $niitmpdir
+# phase image
+$convcall 501_phase/
+anon_txt $(find $niitmpdir -name '*_info.txt' | sort -n | head -n1) $destdir/anatomy/other/swi001_pha_dicominfo.txt
+align4deface $(find $niitmpdir -name '*.nii' | sort -n | head -n1) \
+   ${wdir}/t2w.mat ${wdir}/swi_pha 0
+export_defaced ${wdir}/swi_pha instd $destdir/anatomy/other/swi001_pha
+rm -rf $niitmpdir
+
+# DTI (only the coregistered direction data)
+# get the relevant dicoms out
+mkdir dti
+for i in $dcmdir/*; do
+   dicomhead $i | grep -q '^0018 1030.*Name//Reg - DTI_high_iso' && ln -s ../$i dti/ || true
+done
+mkdir -p $niitmpdir
+# convert
+dcm2nii -o $niitmpdir dti/*
+align4deface $(find $niitmpdir -name 'x*.nii*') ${wdir}/swi_mag.mat ${wdir}/dti 0
+export_defaced ${wdir}/dti instd $destdir/dti/dti001
+mv nii/*.bval $destdir/dti/dti001.bvals
+mv nii/*.bvec $destdir/dti/dti001.bvecs
+rm -rf $niitmpdir
+
+## fieldmap
+siftnfix_mag_phase $dcmdir 801
+# magnitude image
+$convcall 801_mag/
+anon_txt $(find $niitmpdir -name '*_info.txt' | sort -n | head -n1) $destdir/fieldmap/fieldmap001_mag_dicominfo.txt
+align4deface $(find $niitmpdir -name '*.nii' | sort -n | head -n1) \
+   ${wdir}/dti.mat ${wdir}/fm_mag 0
+export_defaced ${wdir}/fm_mag instd $destdir/fieldmap/fieldmap001_mag
+rm -rf $niitmpdir
+# phase image
+$convcall 801_phase/
+anon_txt $(find $niitmpdir -name '*_info.txt' | sort -n | head -n1) $destdir/fieldmap/fieldmap001_pha_dicominfo.txt
+align4deface $(find $niitmpdir -name '*.nii' | sort -n | head -n1) \
+   ${wdir}/dti.mat ${wdir}/fm_pha 0
+# convert from Hz to rad/sec
+$FSLDIR/bin/fslmaths ${wdir}/fm_pha_instd -mul 6.283185307179586 ${wdir}/fm_pha_rad
+export_defaced ${wdir}/fm_pha rad $destdir/fieldmap/fieldmap001_pha
+rm -rf $niitmpdir
+
+# orderly exit
+rm -rf $wdir
+
+
