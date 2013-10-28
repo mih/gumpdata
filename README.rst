@@ -27,9 +27,9 @@ Repository content
   Scripts used to convert data from its raw into the released form
 ``scripts/figures/``
   Scripts to produce figures in the data paper
-``scripts/openfmri.org/``
-  Configuration file for the openfmri package for producing the group template
-  images
+``scripts/openfmri/``
+  Configuration file for the openfmri_helpers package for producing the group
+  template images
 ``scripts/similarity_analysis/``
   Scripts to perform the univariate and multivariate pattern similarity analysis
   in the data paper
