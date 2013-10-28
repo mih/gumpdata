@@ -31,21 +31,19 @@ All code is licensed under the terms of the MIT license, or some equally liberal
 alternative license. Please see the COPYING file in the source distribution for
 more detailed information.
 
-Documentation
-=============
+Data access API documentation
+=============================
 
-.. currentmodule:: gumpdata
+.. currentmodule:: gumpdata.io
 
 .. autosummary::
    :toctree: generated
 
-   io.annotation
-   io.motion
-   io.physio
+   GumpData
 
 
 Indices and tables
 ==================
 
-:ref:`genindex` | :ref:`modindex` | :ref:`search`
+:ref:`genindex` | :ref:`search`
 
