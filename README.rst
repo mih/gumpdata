@@ -14,6 +14,13 @@ integrity and known anomalies.
 
 More information on the dataset can be found in Hanke et al. (201x)
 
+.. link list
+
+`Bug tracker <https://github.com/gumpdata/gumpdata/issues>`_ |
+`Documentation <https://gumpdata.readthedocs.org>`_ |
+`Downloads <https://github.com/gumpdata/gumpdata/tags>`_ |
+`PyPi <http://pypi.python.org/pypi/gumpdata>`_
+
 Repository content
 ==================
 
@@ -34,9 +41,27 @@ Repository content
   Scripts to perform the univariate and multivariate pattern similarity analysis
   in the data paper
 
-.. link list
+Dataset tests
+=============
 
-`Bug tracker <https://github.com/gumpdata/gumpdata/issues>`_ |
-`Documentation <https://gumpdata.readthedocs.org>`_ |
-`Downloads <https://github.com/gumpdata/gumpdata/tags>`_ |
-`PyPi <http://pypi.python.org/pypi/gumpdata>`_
+The ``gumpdata`` Python module comes with a number of tests to verify data
+integrity and consistency. These tests can be executed using Python ``nose``
+package or a similar test framework.
+
+Enter the root directory containing the data release files and run
+``nosetests``, while setting the PYTHONPATH environment variable to point to
+the directory with the content of this repository::
+
+  $ PYTHONPATH=<path-to-repo-checkout>:$PYTHONPATH nosetests
+
+This will execute all available tests. The source of the tests is also
+executable documentation for the data access API.
+
+License
+=======
+
+All code is licensed under the terms of the MIT license, or some equally liberal
+alternative license. Please see the COPYING file in the source distribution for
+more detailed information.
+
+

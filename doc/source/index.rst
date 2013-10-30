@@ -24,13 +24,6 @@ If you think it would be worthwhile to contribute to this project your
 input would be highly appreciated. Please report issues, send feature-requests,
 and pull-request without hesitation!
 
-License
-=======
-
-All code is licensed under the terms of the MIT license, or some equally liberal
-alternative license. Please see the COPYING file in the source distribution for
-more detailed information.
-
 Data access API documentation
 =============================
 
