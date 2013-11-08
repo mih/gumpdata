@@ -4,36 +4,36 @@ set -e
 set -u
 
 # anatomical session
-cat scripts/condor/export_anatomical_session.in > scripts/condor/export_anatomical_session
+cat gumpdata/scripts/conversion/condor/export_anatomical_session.in > gumpdata/scripts/conversion/condor/export_anatomical_session
 for sid in $(anon_id list); do
-  printf "arguments = $sid $(anon_id $sid)\nqueue 1\n" >> scripts/condor/export_anatomical_session
+  printf "arguments = $sid $(anon_id $sid)\nqueue 1\n" >> gumpdata/scripts/conversion/condor/export_anatomical_session
 done
-condor_submit scripts/condor/export_anatomical_session
-rm scripts/condor/export_anatomical_session
+condor_submit gumpdata/scripts/conversion/condor/export_anatomical_session
+rm gumpdata/scripts/conversion/condor/export_anatomical_session
 
 # physio data
-cat scripts/condor/export_7Tad_physio.in > scripts/condor/export_7Tad_physio
+cat gumpdata/scripts/conversion/condor/export_7Tad_physio.in > gumpdata/scripts/conversion/condor/export_7Tad_physio
 for sid in $(anon_id list); do
-  printf "arguments = 7T_ad/data/$sid/raw/physio openfmri.org/sub$(anon_id $sid)/physio/task001 conversion.log\nqueue 1\n" >> scripts/condor/export_7Tad_physio
+  printf "arguments = 7T_ad/data/$sid/raw/physio openfmri.org/sub$(anon_id $sid)/physio/task001 conversion.log\nqueue 1\n" >> gumpdata/scripts/conversion/condor/export_7Tad_physio
 done
-condor_submit scripts/condor/export_7Tad_physio
-rm scripts/condor/export_7Tad_physio
+condor_submit gumpdata/scripts/conversion/condor/export_7Tad_physio
+rm gumpdata/scripts/conversion/condor/export_7Tad_physio
 
 # functional session
-cat scripts/condor/export_functional_session.in > scripts/condor/export_functional_session
+cat gumpdata/scripts/conversion/condor/export_functional_session.in > gumpdata/scripts/conversion/condor/export_functional_session
 for sid in $(anon_id list); do
-  printf "arguments = $sid $(anon_id $sid)\nqueue 1\n" >> scripts/condor/export_functional_session
+  printf "arguments = $sid $(anon_id $sid)\nqueue 1\n" >> gumpdata/scripts/conversion/condor/export_functional_session
 done
-condor_submit scripts/condor/export_functional_session
-rm scripts/condor/export_functional_session
+condor_submit gumpdata/scripts/conversion/condor/export_functional_session
+rm gumpdata/scripts/conversion/condor/export_functional_session
 
 # angio data
-cat scripts/condor/export_angio_session.in > scripts/condor/export_angio_session
+cat gumpdata/scripts/conversion/condor/export_angio_session.in > gumpdata/scripts/conversion/condor/export_angio_session
 for sid in $(anon_id list); do
-  printf "arguments = $sid $(anon_id $sid)\nqueue 1\n" >> scripts/condor/export_angio_session
+  printf "arguments = $sid $(anon_id $sid)\nqueue 1\n" >> gumpdata/scripts/conversion/condor/export_angio_session
 done
-condor_submit scripts/condor/export_angio_session
-rm scripts/condor/export_angio_session
+condor_submit gumpdata/scripts/conversion/condor/export_angio_session
+rm gumpdata/scripts/conversion/condor/export_angio_session
 
 
 

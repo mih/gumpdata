@@ -1,5 +1,5 @@
 universe = vanilla
-executable = /home/data/exppsy/forrest_gump/scripts/bin/convert_dicoms_7Tad
+executable = /home/data/exppsy/forrest_gump/gumpdata/scripts/conversion/convert_dicoms_7Tad
 output = /home/data/exppsy/forrest_gump/logs/$(CLUSTER).$(PROCESS).out
 error = /home/data/exppsy/forrest_gump/logs/$(CLUSTER).$(PROCESS).err
 log = /home/data/exppsy/forrest_gump/logs/$(CLUSTER).$(PROCESS).log
