@@ -3,18 +3,30 @@
 set -e
 set -u
 
-# physio data
-cat gumpdata/scripts/conversion/condor/export_pandora_physio.in > gumpdata/scripts/conversion/condor/export_pandora_physio
-for sid in $(anon_id list); do
-  printf "arguments = pandora/data/$sid/raw/physio openfmri.org/sub$(anon_id $sid)/physio/task002 conversion.log\nqueue 1\n" >> gumpdata/scripts/conversion/condor/export_pandora_physio
-done
-condor_submit gumpdata/scripts/conversion/condor/export_pandora_physio
-rm gumpdata/scripts/conversion/condor/export_pandora_physio
+## physio data
+#cat gumpdata/scripts/conversion/condor/export_pandora_physio.in > gumpdata/scripts/conversion/condor/export_pandora_physio
+#for sid in $(anon_id list); do
+#  printf "arguments = pandora/data/$sid/raw/physio openfmri.org/sub$(anon_id $sid)/physio/task002 conversion.log\nqueue 1\n" >> gumpdata/scripts/conversion/condor/export_pandora_physio
+#done
+#condor_submit gumpdata/scripts/conversion/condor/export_pandora_physio
+#rm gumpdata/scripts/conversion/condor/export_pandora_physio
+#
+## pandora fMRI session
+#cat gumpdata/scripts/conversion/condor/export_pandora_session.in > gumpdata/scripts/conversion/condor/export_pandora_session
+#for sid in $(anon_id list); do
+#  printf "arguments = $sid $(anon_id $sid)\nqueue 1\n" >> gumpdata/scripts/conversion/condor/export_pandora_session
+#done
+#condor_submit gumpdata/scripts/conversion/condor/export_pandora_session
+#rm gumpdata/scripts/conversion/condor/export_pandora_session
 
-# pandora fMRI session
-cat gumpdata/scripts/conversion/condor/export_pandora_session.in > gumpdata/scripts/conversion/condor/export_pandora_session
+# behavioral log
 for sid in $(anon_id list); do
-  printf "arguments = $sid $(anon_id $sid)\nqueue 1\n" >> gumpdata/scripts/conversion/condor/export_pandora_session
+  iname="pandora/logs/$sid.log"
+  if [ -f "$iname" ]; then
+    gumpdata/scripts/conversion/convert_behavlog_pandora openfmri.org/sub$(anon_id $sid)/behav/task002_run < $iname
+  else
+    iname="pandora/logs/$sid.trials"
+    gumpdata/scripts/conversion/convert_behavtrials_pandora openfmri.org/sub$(anon_id $sid)/behav/task002_run < $iname
+  fi
 done
-condor_submit gumpdata/scripts/conversion/condor/export_pandora_session
-rm gumpdata/scripts/conversion/condor/export_pandora_session
+
