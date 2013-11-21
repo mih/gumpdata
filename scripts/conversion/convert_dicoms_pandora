@@ -1,0 +1,81 @@
+#!/bin/sh
+#
+# Synopsis:
+#
+#  convert_dicoms.sh <subject id>
+#
+# Converts relevant dicoms into NIfTI files and associates meta
+# data (e.g. motion corrections parameters) into txt files.
+#
+set -e
+set -u
+
+get_run_id () {
+     echo "$(echo $(basename $1) | sed -e 's/.*36sl_R//g' -e 's/P_MoCoSeries.*//g' -e 's/_MoCoSeries.*//g' -e 's/P.nii//g' -e 's/.nii//g' -e 's/P_info.txt//g' -e 's/_info.txt//g')"
+}
+
+anon_txt () {
+  grep -a -i -v study < $1 | grep -aiv subject | grep -aiv series > $2
+}
+
+subj=$1
+anon_id=$2
+dcmtar="$(readlink -f pandora/data/$subj/raw/dicom/*)"
+niitmpdir='nii'
+curdir="$(pwd)"
+destdir="$curdir/openfmri.org/sub$anon_id"
+wdir=$(mktemp -d)
+convcall="mcverter -f fsl -d -n -o $niitmpdir"
+
+mkdir -p $destdir
+cd $wdir
+
+# extract dicoms
+tar -xf ${dcmtar}
+dcmdir="$(find . -mindepth 1 -type d)/"
+sessiondir="$destdir/BOLD/task002_run001"
+mkdir -p $sessiondir
+$convcall -m flashref_psf $dcmdir
+gzip -n -c $(find $niitmpdir -name '*DiCo.nii' | sort | tail -n1) > $sessiondir/moco_ref.nii.gz
+rm -rf $niitmpdir
+
+# functional
+# first kill all the MoCo reference volumes -- they confuse the converters
+for dcm in $dcmdir/*; do
+    dcmdump $dcm 2>&1 | grep ImageComments | grep -i 'reference volume' && rm $dcm && echo "removed MoCo reference" || true ;
+done
+# sorting to get later recorded image series overwrite previous one, if the
+# name is the same (deals with re-runs)
+# the original volumes
+$convcall -m flashref_bold $dcmdir
+for info in $(find $niitmpdir -name '*info.txt'|sort); do
+  ddir="$destdir/BOLD/task002_run00$(get_run_id $info)"
+  mkdir -p $ddir
+  anon_txt $info $ddir/bold_dicominfo.txt
+done
+for func in $(find $niitmpdir -name '*.nii'|sort); do
+  ddir="$destdir/BOLD/task002_run00$(get_run_id $func)"
+  gzip -n -c $func > $ddir/bold.nii.gz
+done
+rm -rf $niitmpdir
+# the corrected volumes too
+$convcall -m MoCo $dcmdir
+for moco in $(find $niitmpdir -name '*moco.txt'|sort); do
+  ddir="$destdir/BOLD/task002_run00$(get_run_id $moco)"
+  cut -d ' ' -f 2,2 < $moco | tr ',' ' ' > $ddir/bold_dico_moco.txt
+done
+for info in $(find $niitmpdir -name '*info.txt'|sort); do
+  ddir="$destdir/BOLD/task002_run00$(get_run_id $info)"
+  anon_txt $info $ddir/bold_dico_dicominfo.txt
+done
+for func in $(find $niitmpdir -name '*.nii'|sort); do
+  ddir="$destdir/BOLD/task002_run00$(get_run_id $func)"
+  gzip -n -c $func > $ddir/bold_dico.nii.gz
+done
+
+rm -rf *
+
+# orderly exit
+rm -rf $wdir
+
+

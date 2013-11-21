@@ -1,0 +1,9 @@
+universe = vanilla
+executable = /home/data/exppsy/forrest_gump/gumpdata/scripts/conversion/convert_dicoms_pandora
+output = /home/data/exppsy/forrest_gump/logs/$(CLUSTER).$(PROCESS).out
+error = /home/data/exppsy/forrest_gump/logs/$(CLUSTER).$(PROCESS).err
+log = /home/data/exppsy/forrest_gump/logs/$(CLUSTER).$(PROCESS).log
+initialdir = /home/data/exppsy/forrest_gump
+getenv = True
+request_cpus = 1
+request_memory = 4000
