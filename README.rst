@@ -16,9 +16,10 @@ More information on the dataset can be found in Hanke et al. (201x)
 
 .. link list
 
-`Bug tracker <https://github.com/gumpdata/gumpdata/issues>`_ |
+`Bug tracker <https://github.com/hanke/gumpdata/issues>`_ |
 `Documentation <https://gumpdata.readthedocs.org>`_ |
-`Downloads <https://github.com/gumpdata/gumpdata/tags>`_ |
+`Downloads <https://github.com/hanke/gumpdata/tags>`_ |
+..
 `PyPi <http://pypi.python.org/pypi/gumpdata>`_
 
 Repository content
