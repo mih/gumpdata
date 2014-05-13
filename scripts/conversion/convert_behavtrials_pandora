@@ -1,0 +1,58 @@
+#!/usr/bin/python
+import sys
+import csv
+import os
+from os.path import join as opj
+
+timing = {
+    0: (0, 6, 12, 19, 25, 31, 36, 42, 48, 54, 60, 67, 73, 79, 85, 90, 96, 103, 109, 116, 121, 126, 132, 138, 143),
+    1: (0, 6, 12, 18, 25, 32, 38, 45, 51, 57, 63, 68, 75, 81, 87, 93, 99, 105, 111, 117, 122, 128, 133, 138, 145),
+    2: (0, 7, 13, 19, 25, 30, 35, 40, 47, 54, 60, 66, 72, 78, 84, 90, 96, 102, 107, 114, 119, 125, 131, 137, 144),
+    3: (0, 6, 11, 18, 23, 28, 34, 39, 46, 53, 59, 65, 71, 77, 83, 89, 94, 100, 106, 112, 118, 124, 131, 137, 144),
+    4: (0, 6, 12, 18, 24, 31, 37, 43, 49, 56, 61, 67, 73, 78, 84, 89, 94, 101, 106, 112, 118, 124, 130, 136, 143),
+    5: (0, 7, 13, 19, 25, 31, 36, 41, 48, 54, 61, 67, 73, 79, 84, 90, 96, 102, 108, 113, 119, 126, 133, 138, 144),
+    6: (0, 6, 12, 18, 24, 31, 37, 43, 49, 56, 61, 67, 72, 78, 83, 89, 95, 102, 108, 113, 118, 124, 131, 138, 144),
+    7: (0, 5, 10, 16, 22, 27, 34, 40, 47, 54, 60, 66, 72, 78, 84, 90, 96, 103, 109, 114, 119, 125, 131, 137, 143)
+}
+
+done_runs = 0
+last_run = None
+run_counter = dict(zip(range(8), [0] * 8))
+
+oprefix = sys.argv[1]
+ow = None
+
+ir = csv.DictReader(sys.stdin)
+
+for t in ir:
+    d = dict([(k, t[k]) for k in ('run', 'stim', 'genre', 'delay', 'catch')])
+    if not d['run'] in [str(i) for i in range(8)]:
+        continue
+    run = int(d['run'])
+    if not run == last_run:
+        odir = '%s%.3i' % (oprefix, run + 1)
+        if not os.path.exists(odir):
+            os.makedirs(odir)
+        ofile = open(opj(odir, 'behavdata.txt'), 'w')
+        ow = csv.DictWriter(
+                ofile,
+                fieldnames=['run', 'volume', 'run_volume', 'stim',
+                            'genre', 'delay', 'catch', 'sound_soa',
+                            'trigger_ts'],
+                quoting=csv.QUOTE_NONNUMERIC)
+        #ow.writeheader()
+        ow.writerow( dict((f,f) for f in ow.fieldnames))
+        trigger = 153 * done_runs
+        done_runs += 1
+        last_run = run
+    run_trigger = timing[run][run_counter[run] % 25]
+    d['volume'] = trigger + run_trigger
+    d['run_volume'] = run_trigger
+    d['sound_soa'] = None
+    d['trigger_ts'] = None
+    d['delay'] = int(d['delay'])
+    d['catch'] = int(d['catch'])
+    d['run'] = run
+    run_counter[run] += 1
+    ow.writerow(d)
+

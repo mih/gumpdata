@@ -1,0 +1,57 @@
+#!/usr/bin/python
+import sys
+import csv
+import os
+from os.path import join as opj
+
+trigger = 0
+run_trigger = 0
+trigger_time = None
+last_trigger_time = None
+cur_trial = {}
+
+oprefix = sys.argv[1]
+ow = None
+
+for line in sys.stdin:
+    l = line.split()
+    ts = float(l[0])
+    data = l[2:]
+    if data == ['Keypress:', 't']:
+        trigger_time = ts
+        if last_trigger_time:
+            dt = ts - last_trigger_time
+            if run_trigger != 0 and abs(2.0 - dt) > .02:
+                print 'trigger anomaly:', trigger_time, dt, run_trigger
+        trigger += 1
+        run_trigger += 1
+        last_trigger_time = trigger_time
+    elif data == ['Started', 'presenting', 'run_start_fixation']:
+        run_trigger = 0
+        ow = None
+    elif data[:2] == ['New', 'trial']:
+        d = eval(''.join(data[4:]))
+        d['volume'] = trigger - 1
+        d['trigger_ts'] = trigger_time
+        d['run_volume'] = run_trigger - 1
+        cur_trial = d
+    elif not cur_trial is None and 'genre' in cur_trial and trigger and data[:2] == ['Sound', 'started']:
+        cur_trial['sound_soa'] = ts - cur_trial['trigger_ts']
+        del cur_trial['question']
+        if ow is None:
+            odir = '%s%.3i' % (oprefix, int(cur_trial['run']) + 1)
+            if not os.path.exists(odir):
+                os.makedirs(odir)
+            ofile = open(opj(odir, 'behavdata.txt'), 'w')
+            ow = csv.DictWriter(
+                    ofile,
+                    fieldnames=['run', 'volume', 'run_volume', 'stim',
+                                'genre', 'delay', 'catch', 'sound_soa',
+                                'trigger_ts'],
+                    quoting=csv.QUOTE_NONNUMERIC)
+            #ow.writeheader()
+            ow.writerow( dict((f,f) for f in ow.fieldnames))
+        ow.writerow(cur_trial)
+        cur_trial = None
+
+
