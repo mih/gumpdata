@@ -1,0 +1,62 @@
+#!/usr/bin/python
+
+# project and reslice a number of atlas parcellations onto a group template
+# parcellation IDs are altered to be non-overlapping across parcellations
+# a CSV file is written with a full list of parcellation IDs, labels, and
+# the associated images defining the parcellations.
+#
+# run in the root of the data, needs no arguments, requires FSL
+
+from subprocess import check_call
+import os
+from os.path import join as opj
+from tempfile import gettempdir
+from lxml import etree
+import csv
+
+template = 'templates/grpbold7Tad'
+atlas_imgs = [
+     ('/usr/share/data/harvard-oxford-atlases/HarvardOxford/HarvardOxford-cortl-maxprob-thr25-1mm.nii.gz',
+      'HarvardOxford-cortl-maxprob-thr25.nii.gz',
+      '/usr/share/data/harvard-oxford-atlases/HarvardOxford-Cortical-Lateralized.xml'),
+     ('/usr/share/data/harvard-oxford-atlases/HarvardOxford/HarvardOxford-sub-maxprob-thr25-1mm.nii.gz',
+      'HarvardOxford-sub-maxprob-thr25.nii.gz',
+      '/usr/share/data/harvard-oxford-atlases/HarvardOxford-Subcortical.xml'),
+     ('/usr/share/data/juelich-histological-atlas/Juelich/Juelich-maxprob-thr25-1mm.nii.gz',
+      'Juelich-maxprob-thr25.nii.gz',
+      '/usr/share/data/juelich-histological-atlas/Juelich.xml')
+    ]
+
+parcel_descr = []
+
+for i, imgs in enumerate(atlas_imgs):
+    tmpfilename = opj(gettempdir(), 'temp_%s' % imgs[1])
+    outfilename = opj(template, 'from_mni', imgs[1])
+    xfm_call = ['flirt', '-in', imgs[0], '-applyxfm',
+         '-init', opj(template, 'xfm', 'mni2tmpl_12dof.mat'),
+         '-out', tmpfilename, '-paddingsize', '0.0',
+         '-interp', 'nearestneighbour',
+         '-ref', opj(template, 'brain.nii.gz')]
+    check_call(xfm_call)
+    check_call(
+        ['fslmaths', tmpfilename, '-add', str(i * 100), '-mas', tmpfilename,
+         outfilename])
+    os.remove(tmpfilename)
+
+    descr = etree.fromstring(open(imgs[2]).read())
+    #atlas_name = descr.find('header').find('name').text
+    atlas_name = imgs[1]
+    parcels = descr.find('data')
+    for parcel in parcels.iterchildren():
+        id_ = (i * 100) + int(parcel.get('index')) + 1
+        label = parcel.text
+        parcel_descr.append((id_, atlas_name, label))
+
+
+ocsv = csv.writer(open(opj(template,
+                           'from_mni',
+                           'parcellations_labels.csv'), 'w'),
+                  quoting=csv.QUOTE_NONNUMERIC)
+ocsv.writerow(['index', 'parcellation_file', 'label'])
+for p in sorted(parcel_descr, key=lambda x: x[0]):
+    ocsv.writerow(p)

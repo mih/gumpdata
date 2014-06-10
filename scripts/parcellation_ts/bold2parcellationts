@@ -1,0 +1,89 @@
+#!/usr/bin/python
+
+# Load BOLD timeserie of a single run (task/subject) and compute mean
+# timeseries for all ROIs/parcellations defined in the specified arguments
+# Timeseries are stored in a flat table (timepoints x rois (nrois x nstats))
+# with mean, median, min, max, and std for each ROI stored in successive columns
+#g
+# run this in the root of the data structure, e.g.
+#
+# $ bold2parcellationts 2 1 1 dico7Tad2grpbold7Tad_nl \
+#     templates/grpbold7Tad/from_mni/HarvardOxford-cortl-maxprob-thr25.nii.gz \
+#     templates/grpbold7Tad/from_mni/HarvardOxford-sub-maxprob-thr25.nii.gz \
+#     templates/grpbold7Tad/from_mni/Juelich-maxprob-thr25.nii.gz
+
+import sys
+import os
+from os.path import join as opj
+from mvpa2.datasets.mri import fmri_dataset
+import numpy as np
+import csv
+import gzip
+import h5py
+
+subj = int(sys.argv[1])
+task = int(sys.argv[2])
+run = int(sys.argv[3])
+flavor = sys.argv[4]
+parcellations = sys.argv[5:]
+
+infile = opj('sub%.3i' % subj, 'BOLD', 'task%.3i_run%.3i' % (task, run),
+             'bold_dico_%s.nii.gz' % flavor)
+maskfile = opj('sub%.3i' % subj, 'BOLD', 'task%.3i_run%.3i' % (task, run),
+               'bold_dico_brainmask_%s.nii.gz' % flavor)
+
+ds = fmri_dataset(
+        infile, mask=maskfile,
+        add_fa=dict([('parcel%i' % i , f)
+                        for i, f in enumerate(parcellations)]))
+
+colnames = []
+condensed = {}
+roi_size = {}
+col_order = ('mean', 'std', 'median', 'min', 'max')
+
+for i, p in enumerate(parcellations):
+    fa = ds.fa['parcel%i' % i]
+    pids = [int(j) for j in fa.unique if j != 0]
+    for pid in pids:
+        cnd = {}
+        roi = ds[:, fa.value == pid]
+        roi_size[pid] = roi.nfeatures
+        cnd['mean'] = roi.samples.mean(axis=1)
+        cnd['std'] = roi.samples.std(axis=1)
+        cnd['median'] = np.median(roi.samples, axis=1)
+        cnd['min'] = roi.samples.min(axis=1)
+        cnd['max'] = roi.samples.max(axis=1)
+        condensed[pid] = cnd
+
+out = []
+for pid in sorted (condensed.keys()):
+    colnames += ['%i(%s)' % (pid, l) for l in ('mean', 'std', 'median', 'min', 'max')]
+    out += [condensed[pid][l] for l in ('mean', 'std', 'median', 'min', 'max')]
+
+# CSV table
+ofilename = opj('sub%.3i' % subj, 'BOLD', 'task%.3i_run%.3i' % (task, run),
+                'atlas_timeseries_%s.csv.gz' % flavor)
+ocsv = csv.writer(gzip.open(ofilename, 'w'),
+                  quoting=csv.QUOTE_NONNUMERIC)
+ocsv.writerow(colnames)
+out = np.array(out).T
+for tp in out:
+    ocsv.writerow(tp)
+
+# ROI stats
+ofilename = opj('sub%.3i' % subj, 'BOLD', 'task%.3i_run%.3i' % (task, run),
+                'atlas_roi_sizes_%s.csv' % flavor)
+ocsv = csv.writer(open(ofilename, 'w'),
+                  quoting=csv.QUOTE_NONNUMERIC)
+ocsv.writerow(['roi_id', 'nvoxels'])
+for pid in sorted (condensed.keys()):
+    ocsv.writerow((pid, roi_size[pid]))
+
+# HDF5 table
+ofilename = opj('sub%.3i' % subj, 'BOLD', 'task%.3i_run%.3i' % (task, run),
+                'atlas_timeseries_%s.hdf5' % flavor)
+hdf = h5py.File(ofilename, 'w')
+hdf.create_dataset('column_names', None, None, colnames, compression=9)
+hdf.create_dataset('timeseries', None, None, out, compression=9)
+hdf.close()
