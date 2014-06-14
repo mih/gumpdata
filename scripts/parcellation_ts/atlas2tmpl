@@ -55,7 +55,7 @@ for i, imgs in enumerate(atlas_imgs):
 
 ocsv = csv.writer(open(opj(template,
                            'from_mni',
-                           'parcellations_labels.csv'), 'w'),
+                           'atlas_labels.csv'), 'w'),
                   quoting=csv.QUOTE_NONNUMERIC)
 ocsv.writerow(['index', 'parcellation_file', 'label'])
 for p in sorted(parcel_descr, key=lambda x: x[0]):
