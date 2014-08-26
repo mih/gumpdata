@@ -1,0 +1,85 @@
+#!/bin/bash
+#
+# Synopsis:
+#
+#  convert_dicoms_phase2_localizer <subject id> <anon id> <outdir>
+#
+# Converts DICOMs from
+#
+# requires 'numbound' from num-utils'
+
+set -e
+set -u
+
+. /etc/fsl/fsl.sh
+. gumpdata/scripts/conversion/libdeface.sh
+. gumpdata/scripts/conversion/libphilipsfieldmap.sh
+
+get_latest_file () {
+   echo $(find "$1" -name "$2" | sort | tail -n1)
+}
+
+proc_fmri_bundle () {
+  tbn="$1"
+  destdir="$2"
+  subj="$3"
+  type="$4"
+  task="$5"
+  run="$6"
+  basename="$7"
+  initmat="$8"
+  realign="$9"
+  sr="${10}"
+  basedir="$destdir/$type/task$(zeropad $task 3)_run$(zeropad $run 3)"
+  mkdir -p "$basedir"
+  inbase="${tbn%*.nii}"
+  anon_txt ${inbase}_info.txt $basedir/${basename}_dicominfo.txt
+  getdeface ${inbase}.nii "${initmat}" ${inbase} "$realign" "$sr"
+  export_defaced ${inbase} instd $basedir/${basename}
+}
+###############################################################################
+###############################################################################
+###############################################################################
+
+subj=$1
+anon_id=$2
+outdir=$(readlink -f "$3")
+dcmsrc="$(for src in $(ls -1 3T_visloc/mri/${subj}_*.tar* | sort |tail -n1); do readlink -f $src ; done)"
+niitmpdir='nii'
+curdir="$(pwd)"
+destdir="$outdir/sub$anon_id"
+wdir=$(mktemp -d)
+mkdir -p "$wdir"
+convcall="mcverter -f fsl -d -n -o $niitmpdir"
+
+# directories to be filled
+for i in fieldmap; do
+  mkdir -p $destdir/$i
+done
+
+cd $wdir
+echo "Work directory: $(pwd)"
+# extract dicoms
+tar -xf ${dcmsrc}
+dcmdir="$(find . -mindepth 1 -type d)/"
+
+$convcall -m movie $dcmdir
+$convcall -m RetMap $dcmdir
+$convcall -m VisLoc $dcmdir
+#gzip -9 ${wdir}/${niitmpdir}/*.nii
+srcdir="${wdir}/${niitmpdir}"
+
+# derive initial transform from scratch -- afterwards go incremental
+proc_fmri_bundle "$(get_latest_file "${srcdir}" "*movie*.nii")" $destdir $subj BOLD 4 1 bold '' 1 90
+proc_fmri_bundle "$(get_latest_file "${srcdir}" "*RetMap1*.nii")" $destdir $subj BOLD 5 1 bold "${srcdir}/*movie_*.mat" 1 10
+proc_fmri_bundle "$(get_latest_file "${srcdir}" "*RetMap2*.nii")" $destdir $subj BOLD 5 2 bold "${srcdir}/*RetMap1_*.mat" 1 10
+proc_fmri_bundle "$(get_latest_file "${srcdir}" "*RetMap3*.nii")" $destdir $subj BOLD 5 3 bold "${srcdir}/*RetMap2_*.mat" 1 10
+proc_fmri_bundle "$(get_latest_file "${srcdir}" "*RetMap4*.nii")" $destdir $subj BOLD 5 4 bold "${srcdir}/*RetMap3_*.mat" 1 10
+proc_fmri_bundle "$(get_latest_file "${srcdir}" "*VisLoc1*.nii")" $destdir $subj BOLD 6 1 bold "${srcdir}/*RetMap4_*.mat" 1 10
+proc_fmri_bundle "$(get_latest_file "${srcdir}" "*VisLoc2*.nii")" $destdir $subj BOLD 6 2 bold "${srcdir}/*VisLoc1_*.mat" 1 10
+proc_fmri_bundle "$(get_latest_file "${srcdir}" "*VisLoc3*.nii")" $destdir $subj BOLD 6 3 bold "${srcdir}/*VisLoc2_*.mat" 1 10
+proc_fmri_bundle "$(get_latest_file "${srcdir}" "*VisLoc4*.nii")" $destdir $subj BOLD 6 4 bold "${srcdir}/*VisLoc3_*.mat" 1 10
+convert_fieldmap  "$dcmdir" 1201 "$wdir" "${srcdir}/*VisLoc4_*.mat" "$destdir" 004 "$convcall" "$niitmpdir"
+
+# orderly exit
+rm -rf $wdir
