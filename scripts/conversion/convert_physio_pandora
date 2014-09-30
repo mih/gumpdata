@@ -107,7 +107,10 @@ if __name__ == '__main__':
         if not os.path.exists(od):
             os.makedirs(od)
         if len(sys.argv) >3:
-            log = open(os.path.join(od,sys.argv[3]), 'w')
+            logfname = os.path.join(od,sys.argv[3])
+            if os.path.exists(logfname):
+                os.unlink(logfname)
+            log = open(logfname, 'w')
         else:
             log = sys.stderr
         in_file = os.path.join(in_dir, in_file)
@@ -115,4 +118,6 @@ if __name__ == '__main__':
         print '%s -> %s' % (in_file, out_file)
         data = np.loadtxt(in_file)
         d = proc_physio_run(data, trigger_n[i], log)
+        if os.path.exists(out_file):
+            os.unlink(out_file)
         np.savetxt(out_file, d.T)
