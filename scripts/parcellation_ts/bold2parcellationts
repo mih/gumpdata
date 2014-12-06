@@ -7,7 +7,7 @@
 #g
 # run this in the root of the data structure, e.g.
 #
-# $ bold2parcellationts 2 1 1 dico7Tad2grpbold7Tad_nl \
+# $ bold2parcellationts 1 2 1 dico7Tad2grpbold7Tad_nl \
 #     templates/grpbold7Tad/from_mni/HarvardOxford-cortl-maxprob-thr25.nii.gz \
 #     templates/grpbold7Tad/from_mni/HarvardOxford-sub-maxprob-thr25.nii.gz \
 #     templates/grpbold7Tad/from_mni/Juelich-maxprob-thr25.nii.gz
@@ -21,8 +21,8 @@ import csv
 import gzip
 import h5py
 
-subj = int(sys.argv[1])
-task = int(sys.argv[2])
+task = int(sys.argv[1])
+subj = int(sys.argv[2])
 run = int(sys.argv[3])
 flavor = sys.argv[4]
 parcellations = sys.argv[5:]

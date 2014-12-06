@@ -1,0 +1,309 @@
+universe = vanilla
+executable = /usr/bin/python
+a1 = ../gumpdata/scripts/parcellation_ts/bold2parcellationts 1
+a2 = templates/grpbold7Tad/from_mni/HarvardOxford-cortl-maxprob-thr25.nii.gz templates/grpbold7Tad/from_mni/HarvardOxford-sub-maxprob-thr25.nii.gz templates/grpbold7Tad/from_mni/Juelich-maxprob-thr25.nii.gz
+
+arguments = $(a1) 1 1 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 1 2 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 1 3 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 1 4 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 1 5 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 1 6 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 1 7 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 1 8 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 2 1 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 2 2 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 2 3 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 2 4 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 2 5 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 2 6 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 2 7 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 2 8 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 3 1 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 3 2 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 3 3 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 3 4 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 3 5 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 3 6 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 3 7 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 3 8 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 4 1 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 4 2 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 4 3 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 4 4 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 4 5 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 4 6 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 4 7 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 4 8 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 5 1 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 5 2 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 5 3 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 5 4 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 5 5 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 5 6 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 5 7 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 5 8 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 6 1 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 6 2 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 6 3 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 6 4 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 6 5 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 6 6 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 6 7 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 6 8 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 7 1 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 7 2 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 7 3 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 7 4 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 7 5 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 7 6 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 7 7 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 7 8 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 8 1 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 8 2 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 8 3 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 8 4 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 8 5 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 8 6 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 8 7 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 8 8 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 9 1 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 9 2 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 9 3 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 9 4 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 9 5 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 9 6 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 9 7 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 9 8 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 11 1 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 11 2 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 11 3 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 11 4 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 11 5 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 11 6 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 11 7 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 11 8 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 12 1 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 12 2 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 12 3 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 12 4 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 12 5 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 12 6 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 12 7 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 12 8 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 13 1 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 13 2 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 13 3 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 13 4 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 13 5 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 13 6 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 13 7 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 13 8 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 14 1 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 14 2 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 14 3 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 14 4 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 14 5 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 14 6 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 14 7 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 14 8 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 15 1 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 15 2 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 15 3 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 15 4 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 15 5 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 15 6 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 15 7 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 15 8 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 16 1 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 16 2 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 16 3 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 16 4 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 16 5 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 16 6 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 16 7 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 16 8 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 17 1 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 17 2 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 17 3 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 17 4 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 17 5 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 17 6 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 17 7 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 17 8 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 18 1 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 18 2 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 18 3 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 18 4 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 18 5 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 18 6 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 18 7 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 18 8 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 19 1 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 19 2 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 19 3 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 19 4 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 19 5 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 19 6 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 19 7 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 19 8 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 20 1 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 20 2 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 20 3 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 20 4 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 20 5 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 20 6 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 20 7 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
+arguments = $(a1) 20 8 dico7Tad2grpbold7Tad_nl $(a2)
+queue 1
