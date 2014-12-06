@@ -30,10 +30,11 @@ getdeface () {
 
   $FSLDIR/bin/fslreorient2std "${target}" ${out_base}_instd
 
-  # extract first volume as reference for 4D images
   if [[ $($FSLDIR/bin/fslinfo ${out_base}_instd | grep '^dim4' | sed -e 's/.* //g') -gt 1 ]]; then
-    echo "Use mean volume as reference for de-facing"
-    $FSLDIR/bin/fslmaths ${out_base}_instd -Tmean ${out_base}_meanvol
+    #echo "Use mean volume as reference for de-facing"
+    #$FSLDIR/bin/fslmaths ${out_base}_instd -Tmean ${out_base}_meanvol
+    echo "Use first volume as reference for de-facing"
+    $FSLDIR/bin/fslroi ${out_base}_instd ${out_base}_meanvol 0 1
   else
     $FSLDIR/bin/imln ${out_base}_instd ${out_base}_meanvol
   fi
@@ -49,7 +50,9 @@ getdeface () {
     $FSLDIR/bin/fslmaths ${out_base}_brain -subsamp2 ${out_base}_subsamp
   fi
 
-  opts="-usesqform -bins 256 -cost corratio -searchrx -$sr $sr -searchry -$sr $sr -searchrz -$sr $sr -dof 12"
+  # XXX SOME LIKE IT, SOME NOT
+  #opts="-usesqform -bins 256 -cost corratio -searchrx -$sr $sr -searchry -$sr $sr -searchrz -$sr $sr -dof 12"
+  opts="-bins 256 -cost corratio -searchrx -$sr $sr -searchry -$sr $sr -searchrz -$sr $sr -dof 12"
 
   if [ ! -z "$init_xfm" ]; then
     echo "Use given init xfm"
