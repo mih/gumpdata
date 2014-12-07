@@ -14,7 +14,7 @@ import sys
 
 logfilename = sys.argv[1]
 outdir = sys.argv[2]
-model = 1 #int(sys.argv[3])
+model = 10 #int(sys.argv[3])
 task = 6 #int(sys.argv[4])
 block_stim_length = 16 # in seconds
 
