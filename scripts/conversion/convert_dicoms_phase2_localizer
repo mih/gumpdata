@@ -34,8 +34,8 @@ proc_fieldmap_bundle () {
   # beautify the image header based on protocol info (all hard coded)
   python -c "import nibabel as nb; img=nb.load(\"${basedir}/${basename}.nii.gz\"); hdr=img.get_header(); hdr.set_xyzt_units(xyz='mm'); hdr['cal_min']=img.get_data().min(); hdr['cal_max']=img.get_data().max(); hdr['pixdim'][4]=0; hdr['descrip']='FOV=[240,240,165];FFE;dTE=2.3ms;flipangle=50;CLEAR=y'; hdr['aux_file']=''; img.to_filename(\"${basedir}/${basename}.nii.gz\")"
   # split in mag and pha
-  fslroi $basedir/$basename $basedir/${basename}_pha 0 1
-  fslroi $basedir/$basename $basedir/${basename}_mag 1 1
+  fslroi $basedir/$basename $basedir/${basename}_mag 0 1
+  fslroi $basedir/$basename $basedir/${basename}_pha 1 1
   rm $basedir/$basename.nii*
 }
 
