@@ -2,7 +2,7 @@
 #
 # Synopsis:
 #
-#  convert_dicoms_phase2_localizer <subject id> <anon id> <outdir>
+#  convert_dicoms_phase2_movie <subject id> <anon id> <outdir>
 #
 # Converts DICOMs from
 #
@@ -13,10 +13,30 @@ set -u
 
 . /etc/fsl/fsl.sh
 . gumpdata/scripts/conversion/libdeface.sh
-. gumpdata/scripts/conversion/libphilipsfieldmap.sh
 
 get_latest_file () {
    echo $(find "$1" -name "$2" | sort | tail -n1)
+}
+
+proc_fieldmap_bundle () {
+  tbn="$1"
+  destdir="$2"
+  subj="$3"
+  type="$4"
+  fid="$5"
+  basedir="$destdir/$type"
+  basename="fieldmap$(zeropad $fid 3)"
+  mkdir -p "$basedir"
+  inbase="${tbn%*.nii}"
+  #anon_txt ${inbase}_info.txt $basedir/${basename}_dicominfo.txt
+  getdeface ${inbase}.nii "" ${inbase} "1" "90"
+  export_defaced ${inbase} instd $basedir/${basename}
+  # beautify the image header based on protocol info (all hard coded)
+  python -c "import nibabel as nb; img=nb.load(\"${basedir}/${basename}.nii.gz\"); hdr=img.get_header(); hdr.set_xyzt_units(xyz='mm'); hdr['cal_min']=img.get_data().min(); hdr['cal_max']=img.get_data().max(); hdr['pixdim'][4]=0; hdr['descrip']='FOV=[240,240,165];FFE;dTE=2.3ms;flipangle=50;CLEAR=y'; hdr['aux_file']=''; img.to_filename(\"${basedir}/${basename}.nii.gz\")"
+  # split in mag and pha
+  fslroi $basedir/$basename $basedir/${basename}_pha 0 1
+  fslroi $basedir/$basename $basedir/${basename}_mag 1 1
+  rm $basedir/$basename.nii*
 }
 
 proc_fmri_bundle () {
@@ -33,24 +53,26 @@ proc_fmri_bundle () {
   basedir="$destdir/$type/task$(zeropad $task 3)_run$(zeropad $run 3)"
   mkdir -p "$basedir"
   inbase="${tbn%*.nii}"
-  anon_txt ${inbase}_info.txt $basedir/${basename}_dicominfo.txt
+  #anon_txt ${inbase}_info.txt $basedir/${basename}_dicominfo.txt
   getdeface ${inbase}.nii "${initmat}" ${inbase} "$realign" "$sr"
   export_defaced ${inbase} instd $basedir/${basename}
+  # beautify the image header based on protocol info (all hard coded)
+  python -c "import nibabel as nb; img=nb.load(\"${basedir}/${basename}.nii.gz\"); hdr=img.get_header(); hdr.set_dim_info(freq=0, phase=1, slice=2); hdr['slice_code'] = nb.nifti1.slice_order_codes['sequential increasing']; hdr.set_intent('time series', name='time series'); hdr.set_xyzt_units(xyz='mm', t='sec'); hdr.set_slice_duration(hdr['pixdim'][4]/hdr.get_n_slices()); hdr['slice_start']=0; hdr['slice_end']=34; hdr['cal_min']=img.get_data().min(); hdr['cal_max']=img.get_data().max(); hdr['descrip']='FOV=[240,240,115.2];SENSE=2;TE=30;flipangle=90;fatshift=12.5px;CLEAR=y'; hdr['aux_file']=''; img.to_filename(\"${basedir}/${basename}.nii.gz\")"
 }
 ###############################################################################
 ###############################################################################
 ###############################################################################
 
 subj=$1
-anon_id=$2
+anon_id=$(zeropad $2 3)
 outdir=$(readlink -f "$3")
-dcmsrc="$(for src in $(ls -1 3T_visloc/mri/${subj}_*.tar* | sort |tail -n1); do readlink -f $src ; done)"
+dcmsrc="$(for src in $(ls -1 3T_av_et/mri/${subj}_*.tar* | sort |tail -n1); do readlink -f $src ; done)"
 niitmpdir='nii'
 curdir="$(pwd)"
 destdir="$outdir/sub$anon_id"
 wdir=$(mktemp -d)
 mkdir -p "$wdir"
-convcall="mcverter -f fsl -d -n -o $niitmpdir"
+convcall="dcm2niix -o ${niitmpdir}"
 
 # directories to be filled
 for i in fieldmap; do
@@ -60,26 +82,24 @@ done
 cd $wdir
 echo "Work directory: $(pwd)"
 # extract dicoms
+echo "Unpack"
 tar -xf ${dcmsrc}
 dcmdir="$(find . -mindepth 1 -type d)/"
 
-$convcall -m movie $dcmdir
-$convcall -m RetMap $dcmdir
-$convcall -m VisLoc $dcmdir
-#gzip -9 ${wdir}/${niitmpdir}/*.nii
+mkdir -p ${niitmpdir}
+$convcall ${dcmdir}
 srcdir="${wdir}/${niitmpdir}"
 
-# derive initial transform from scratch -- afterwards go incremental
-proc_fmri_bundle "$(get_latest_file "${srcdir}" "*movie*.nii")" $destdir $subj BOLD 4 1 bold '' 1 90
-proc_fmri_bundle "$(get_latest_file "${srcdir}" "*RetMap1*.nii")" $destdir $subj BOLD 5 1 bold "${srcdir}/*movie_*.mat" 1 10
-proc_fmri_bundle "$(get_latest_file "${srcdir}" "*RetMap2*.nii")" $destdir $subj BOLD 5 2 bold "${srcdir}/*RetMap1_*.mat" 1 10
-proc_fmri_bundle "$(get_latest_file "${srcdir}" "*RetMap3*.nii")" $destdir $subj BOLD 5 3 bold "${srcdir}/*RetMap2_*.mat" 1 10
-proc_fmri_bundle "$(get_latest_file "${srcdir}" "*RetMap4*.nii")" $destdir $subj BOLD 5 4 bold "${srcdir}/*RetMap3_*.mat" 1 10
-proc_fmri_bundle "$(get_latest_file "${srcdir}" "*VisLoc1*.nii")" $destdir $subj BOLD 6 1 bold "${srcdir}/*RetMap4_*.mat" 1 10
-proc_fmri_bundle "$(get_latest_file "${srcdir}" "*VisLoc2*.nii")" $destdir $subj BOLD 6 2 bold "${srcdir}/*VisLoc1_*.mat" 1 10
-proc_fmri_bundle "$(get_latest_file "${srcdir}" "*VisLoc3*.nii")" $destdir $subj BOLD 6 3 bold "${srcdir}/*VisLoc2_*.mat" 1 10
-proc_fmri_bundle "$(get_latest_file "${srcdir}" "*VisLoc4*.nii")" $destdir $subj BOLD 6 4 bold "${srcdir}/*VisLoc3_*.mat" 1 10
-convert_fieldmap  "$dcmdir" 1201 "$wdir" "${srcdir}/*VisLoc4_*.mat" "$destdir" 004 "$convcall" "$niitmpdir"
+proc_fmri_bundle "$(get_latest_file "${srcdir}" "*3mm_movie*.nii*")" $destdir $subj BOLD 4 1 bold '' 1 90
+proc_fmri_bundle "$(get_latest_file "${srcdir}" "*3mm_RetMap1*.nii*")" $destdir $subj BOLD 5 1 bold "${srcdir}/*3mm_movie*.mat" 1 10
+proc_fmri_bundle "$(get_latest_file "${srcdir}" "*3mm_RetMap2*.nii*")" $destdir $subj BOLD 5 2 bold "${srcdir}/*3mm_RetMap1*.mat" 1 10
+proc_fmri_bundle "$(get_latest_file "${srcdir}" "*3mm_RetMap3*.nii*")" $destdir $subj BOLD 5 3 bold "${srcdir}/*3mm_RetMap2*.mat" 1 10
+proc_fmri_bundle "$(get_latest_file "${srcdir}" "*3mm_RetMap4*.nii*")" $destdir $subj BOLD 5 4 bold "${srcdir}/*3mm_RetMap3*.mat" 1 10
+proc_fmri_bundle "$(get_latest_file "${srcdir}" "*3mm_VisLoc1*.nii*")" $destdir $subj BOLD 6 1 bold "${srcdir}/*3mm_RetMap4*.mat" 1 10
+proc_fmri_bundle "$(get_latest_file "${srcdir}" "*3mm_VisLoc2*.nii*")" $destdir $subj BOLD 6 2 bold "${srcdir}/*3mm_VisLoc1*.mat" 1 10
+proc_fmri_bundle "$(get_latest_file "${srcdir}" "*3mm_VisLoc3*.nii*")" $destdir $subj BOLD 6 3 bold "${srcdir}/*3mm_VisLoc2*.mat" 1 10
+proc_fmri_bundle "$(get_latest_file "${srcdir}" "*3mm_VisLoc4*.nii*")" $destdir $subj BOLD 6 4 bold "${srcdir}/*3mm_VisLoc3*.mat" 1 10
 
+proc_fieldmap_bundle "$(get_latest_file "${srcdir}" "*WIP_field_map*.nii*")" $destdir $subj fieldmap 4
 # orderly exit
 rm -rf $wdir
