@@ -66,7 +66,7 @@ proc_fmri_bundle () {
 subj=$1
 anon_id=$(zeropad $2 3)
 outdir=$(readlink -f "$3")
-dcmsrc="$(for src in $(ls -1 3T_av_et/mri/${subj}_*.tar* | sort |tail -n1); do readlink -f $src ; done)"
+dcmsrc="$(for src in $(ls -1 3T_visloc/mri/${subj}_*.tar* | sort |tail -n1); do readlink -f $src ; done)"
 niitmpdir='nii'
 curdir="$(pwd)"
 destdir="$outdir/sub$anon_id"
