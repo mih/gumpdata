@@ -1,0 +1,108 @@
+#!/usr/bin/python
+"""
+Created on Tue Sep 23 13:23:11 2014
+@author: chaeusler, mih
+usage:
+convert_behavlog_localizer.py <logfile> <outputdir> <model-nr> <task-nr>
+
+"""
+
+import numpy as np
+import os
+import subprocess
+import sys
+
+anon_scriptdir = '/home/data/psyinf/forrest_gump'
+
+logfilename = '/home/data/psyinf/forrest_gump/3T_visloc/behav/af29_2014_Jul_18_1129.log' # sys.argv[1]
+outdir = '/home/data/psyinf/forrest_gump/anondata/' # sys.argv[2]
+model = 1 #int(sys.argv[3])
+task = 6 #int(sys.argv[4])
+block_stim_length = 16 # in seconds
+
+condition_labels = ['body', 'face', 'house', 'object', 'scene', 'scramble']
+
+cond2id = dict(zip(condition_labels,
+                   ['cond%.3i' % (i + 1) for i, l in enumerate(condition_labels)]))
+                   
+print cond2id
+
+
+def fname2sid(filename):
+    test = os.path.split(filename)[1].split('_')[0]   
+    return test
+
+def sid2anonid(sid):
+    return int(subprocess.check_output(['python',
+                                        os.path.join(anon_scriptdir, 'anon_id'),
+                                        sid]).strip())
+
+def log2data(fname):
+    """Parse logfile and extract relevant data
+
+    Parameters
+    ----------
+    fname : str
+      Log file name
+
+    Returns
+    -------
+    list
+      Each item is a list with the relevant fields from the relevant lines.
+    """
+    out = []
+    for line in open(fname, 'r'):
+        seq = line.split()
+        if len(seq) < 3 or not seq[2].startswith('MYLOG:'):
+            continue
+        out.append((seq[0], seq[4], seq[5]))
+
+    return out
+
+def write_onsets(onsets, outdir, model, anonid, run, task, cond_dict):
+    for cond in onsets:
+        outfname = os.path.join(outdir,
+                                'sub%.3i' % anonid,
+                                'model',
+                                'model%.3i' % model,
+                                'onsets',
+                                'task%.3i_run%.3i' % (task, run),
+                                cond_dict[cond] + '.txt')
+        path = os.path.dirname(outfname)
+        if not os.path.exists(path):
+            os.makedirs(path)
+        lines = ['%.4f\t%.1f\t1\n' % (onset, 16) for onset in onsets[cond]]
+        outfile = open(outfname, 'w')
+        outfile.writelines(lines)
+        outfile.close()
+
+def generate_output(data, outdir, model, anonid, task, cond_dict):
+    run_counter = 0
+    block_counter = 0
+    run_begin = 0.0
+    onsets = None
+
+    for line in data:
+        if line[1] == 'RUN':
+            if not onsets is None:
+                write_onsets(onsets, outdir, model, anonid, run_counter, task, cond_dict)
+            run_begin = float(line[0])
+            run_counter += 1
+            onsets = dict(zip(condition_labels, [list() for i in condition_labels]))
+        elif line[1] == 'BLOCK':
+            cond = line[2]
+            onsets[cond].append(float(line[0]) - run_begin)
+            block_counter += 1
+        else:
+            raise RuntimeError("I am not possible")
+    write_onsets(onsets, outdir, model, anonid, run_counter, task, cond_dict)
+
+
+##############################
+##############################
+##############################
+
+data = log2data(logfilename)
+sid = fname2sid(logfilename)
+anonid = sid2anonid(sid)
+generate_output(data, outdir, model, anonid, task, cond2id)
