@@ -94,7 +94,7 @@ for dcm in ${dcmsrc}; do
 
 	firstrun=1
 	## derive initial transform from scratch -- afterwards go incremental
-	for run in $(ls -1 ${srcdir}/*3mm_R*nii* | sed -e 's/.*3mm_R//' -e 's/_SENSE.*//' | uniq); do
+	for run in $(ls -1 ${srcdir}/*3mm_R*nii* | sed -e 's/.*3mm_R//' -e 's/_SENSE.*//' | sort| uniq); do
 		if [ $firstrun -eq 1 ]; then
 			proc_fmri_bundle "$(get_latest_file "${srcdir}" "*3mm_R${run}*.nii*")" $destdir $subj BOLD 3 ${run} bold '' 1 90
 		else
