@@ -3,7 +3,7 @@
 Created on Tue Sep 23 13:23:11 2014
 @author: chaeusler, mih
 usage:
-convert_behavlog_localizer.py <logfile> <outputdir> <model-nr> <task-nr>
+convert_behavlog_localizer.py <logfile> <outputdir>
 
 """
 
@@ -12,10 +12,8 @@ import os
 import subprocess
 import sys
 
-anon_scriptdir = '/home/data/psyinf/forrest_gump'
-
-logfilename = '/home/data/psyinf/forrest_gump/3T_visloc/behav/af29_2014_Jul_18_1129.log' # sys.argv[1]
-outdir = '/home/data/psyinf/forrest_gump/anondata/' # sys.argv[2]
+logfilename = sys.argv[1]
+outdir = sys.argv[2]
 model = 1 #int(sys.argv[3])
 task = 6 #int(sys.argv[4])
 block_stim_length = 16 # in seconds
@@ -24,18 +22,16 @@ condition_labels = ['body', 'face', 'house', 'object', 'scene', 'scramble']
 
 cond2id = dict(zip(condition_labels,
                    ['cond%.3i' % (i + 1) for i, l in enumerate(condition_labels)]))
-                   
+
 print cond2id
 
 
 def fname2sid(filename):
-    test = os.path.split(filename)[1].split('_')[0]   
+    test = os.path.split(filename)[1].split('_')[0]
     return test
 
 def sid2anonid(sid):
-    return int(subprocess.check_output(['python',
-                                        os.path.join(anon_scriptdir, 'anon_id'),
-                                        sid]).strip())
+    return int(subprocess.check_output(['./anon_id', sid]).strip())
 
 def log2data(fname):
     """Parse logfile and extract relevant data
