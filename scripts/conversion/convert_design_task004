@@ -3,7 +3,7 @@
 # the matching onset files into the right location. All cmdline magic.
 # currently used the model020 for export
 
-for f in $(ls -1 */BOLD/task004_run001/bold.nii.gz | sed -e 's,BOLD,model/model020,' -e 's/bold.nii.gz/cond001.txt/' | tr @ ' '); do
+for f in $(ls -1 */BOLD/task004_run001/bold.nii.gz | sed -e 's,BOLD,model/model020/onsets,' -e 's/bold.nii.gz/cond001.txt/' | tr @ ' '); do
     mkdir -p $(dirname $f)
     echo "Create $f"
     echo '0.0\t12.0\t1.0\n24.0\t12.0\t1.0\n48.0\t12.0\t1.0\n72.0\t12.0\t1.0\n' > $f
