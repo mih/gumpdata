@@ -7,10 +7,9 @@ convert_behavlog_localizer.py <logfile> <outputdir>
 
 """
 
-import numpy as np
 import os
-import subprocess
 import sys
+from gumpdata.utils import sid2anonid
 
 logfilename = sys.argv[1]
 outdir = sys.argv[2]
@@ -29,9 +28,6 @@ print cond2id
 def fname2sid(filename):
     test = os.path.split(filename)[1].split('_')[0]
     return test
-
-def sid2anonid(sid):
-    return int(subprocess.check_output(['./anon_id', sid]).strip())
 
 def log2data(fname):
     """Parse logfile and extract relevant data

@@ -1,8 +1,24 @@
 #!/usr/bin/python
+#
+# Usage: <script> <logfile> <outputdir>
+#
+
 import sys
 import csv
 import os
 from os.path import join as opj
+from gumpdata.utils import sid2anonid
+
+logfilename = sys.argv[1]
+outdir = sys.argv[2]
+model = 2
+task = 2
+TR = 2.0
+
+condition_labels = ['ambient', 'country', 'metal', 'rocknroll', 'symphonic']
+
+cond2id = dict(zip(condition_labels,
+                   ['cond%.3i' % (i + 1) for i, l in enumerate(condition_labels)]))
 
 timing = {
     0: (0, 6, 12, 19, 25, 31, 36, 42, 48, 54, 60, 67, 73, 79, 85, 90, 96, 103, 109, 116, 121, 126, 132, 138, 143),
@@ -15,45 +31,76 @@ timing = {
     7: (0, 5, 10, 16, 22, 27, 34, 40, 47, 54, 60, 66, 72, 78, 84, 90, 96, 103, 109, 114, 119, 125, 131, 137, 143)
 }
 
-done_runs = 0
-last_run = None
-run_counter = dict(zip(range(8), [0] * 8))
+def fname2sid(filename):
+    test = os.path.split(filename)[1].split('.')[0]
+    return test
 
-oprefix = sys.argv[1]
-ow = None
+def doit(anonid, outdir, task, model, logfile, cond_dict):
+    done_runs = 0
+    last_run = None
+    run_counter = dict(zip(range(8), [0] * 8))
 
-ir = csv.DictReader(sys.stdin)
+    behav_oprefix = opj(outdir, 'sub%.3i' % anonid, 'behav',
+                       'task%.3i_run' % (task,))
+    onset_oprefix = opj(outdir, 'sub%.3i' % anonid, 'model',
+                        'model%.3i' % model, 'onsets',
+                        'task%.3i_run' % (task,))
+    bw = None
+    ow = None
 
-for t in ir:
-    d = dict([(k, t[k]) for k in ('run', 'stim', 'genre', 'delay', 'catch')])
-    if not d['run'] in [str(i) for i in range(8)]:
-        continue
-    run = int(d['run'])
-    if not run == last_run:
-        odir = '%s%.3i' % (oprefix, done_runs + 1)
-        if not os.path.exists(odir):
-            os.makedirs(odir)
-        ofile = open(opj(odir, 'behavdata.txt'), 'w')
-        ow = csv.DictWriter(
-                ofile,
-                fieldnames=['run', 'run_id', 'volume', 'run_volume', 'stim',
-                            'genre', 'delay', 'catch', 'sound_soa',
-                            'trigger_ts'],
-                quoting=csv.QUOTE_NONNUMERIC)
-        #ow.writeheader()
-        ow.writerow( dict((f,f) for f in ow.fieldnames))
-        trigger = 153 * done_runs
-        done_runs += 1
-        last_run = run
-    run_trigger = timing[run][run_counter[run] % 25]
-    d['volume'] = trigger + run_trigger
-    d['run_volume'] = run_trigger
-    d['sound_soa'] = None
-    d['trigger_ts'] = None
-    d['delay'] = int(d['delay'])
-    d['catch'] = int(d['catch'])
-    d['run_id'] = run
-    d['run'] = done_runs
-    run_counter[run] += 1
-    ow.writerow(d)
+    ir = csv.DictReader(logfile)
 
+    for t in ir:
+        d = dict([(k, t[k]) for k in ('run', 'stim', 'genre', 'delay', 'catch')])
+        if not d['run'] in [str(i) for i in range(8)]:
+            continue
+        run = int(d['run'])
+        if not run == last_run:
+            # behavlog
+            odir = '%s%.3i' % (behav_oprefix, done_runs + 1)
+            if not os.path.exists(odir):
+                os.makedirs(odir)
+            ofile = open(opj(odir, 'behavdata.txt'), 'w')
+            bw = csv.DictWriter(
+                    ofile,
+                    fieldnames=['run', 'run_id', 'volume', 'run_volume', 'stim',
+                                'genre', 'delay', 'catch', 'sound_soa',
+                                'trigger_ts'],
+                    quoting=csv.QUOTE_NONNUMERIC)
+            # onset file
+            # new set of onset files needs to come
+            for c in cond_dict:
+                ofname = '%s%.3i/%s.txt' % (onset_oprefix, done_runs + 1,cond_dict[c])
+                if os.path.exists(ofname):
+                    os.unlink(ofname)
+            #bw.writeheader()
+            bw.writerow( dict((f,f) for f in bw.fieldnames))
+            trigger = 153 * done_runs
+            done_runs += 1
+            last_run = run
+        run_trigger = timing[run][run_counter[run] % 25]
+        d['volume'] = trigger + run_trigger
+        d['run_volume'] = run_trigger
+        d['sound_soa'] = None
+        d['trigger_ts'] = None
+        d['delay'] = int(d['delay'])
+        d['catch'] = int(d['catch'])
+        d['run_id'] = run
+        d['run'] = done_runs
+        run_counter[run] += 1
+        bw.writerow(d)
+        ofname = '%s%.3i/%s.txt' % (onset_oprefix, done_runs,cond_dict[d['genre']])
+        ofdir = os.path.dirname(ofname)
+        if not os.path.exists(ofdir):
+            os.makedirs(ofdir)
+        of = open(ofname, 'a')
+        of.write('%.2f\t6.0\t1.0\n' % ((d['run_volume']) * TR))
+        of.close()
+
+##############################
+##############################
+##############################
+
+sid = fname2sid(logfilename)
+anonid = sid2anonid(sid)
+doit(anonid, outdir, task, model, open(logfilename), cond2id)

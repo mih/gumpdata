@@ -1,61 +1,108 @@
 #!/usr/bin/python
+#
+# Usage: <script> <logfile> <outputdir>
+#
+
 import sys
 import csv
 import os
 from os.path import join as opj
+from gumpdata.utils import sid2anonid
 
-trigger = 0
-run_trigger = 0
-trigger_time = None
-last_trigger_time = None
-cur_trial = {}
-run_counter = 0
+logfilename = sys.argv[1]
+outdir = sys.argv[2]
+model = 2
+task = 2
+TR = 2.0
 
-oprefix = sys.argv[1]
-ow = None
+condition_labels = ['ambient', 'country', 'metal', 'rocknroll', 'symphonic']
 
-for line in sys.stdin:
-    l = line.split()
-    ts = float(l[0])
-    data = l[2:]
-    if data == ['Keypress:', 't']:
-        trigger_time = ts
-        if last_trigger_time:
-            dt = ts - last_trigger_time
-            if run_trigger != 0 and abs(2.0 - dt) > .02:
-                print 'trigger anomaly:', trigger_time, dt, run_trigger
-        trigger += 1
-        run_trigger += 1
-        last_trigger_time = trigger_time
-    elif data == ['Started', 'presenting', 'run_start_fixation']:
-        run_trigger = 0
-        run_counter += 1
-        ow = None
-    elif data[:2] == ['New', 'trial']:
-        d = eval(''.join(data[4:]))
-        d['volume'] = trigger - 1
-        d['trigger_ts'] = trigger_time
-        d['run_volume'] = run_trigger - 1
-        cur_trial = d
-    elif not cur_trial is None and 'genre' in cur_trial and trigger and data[:2] == ['Sound', 'started']:
-        cur_trial['sound_soa'] = ts - cur_trial['trigger_ts']
-        cur_trial['run_id'] = cur_trial['run']
-        cur_trial['run'] = run_counter
-        del cur_trial['question']
-        if ow is None:
-            odir = '%s%.3i' % (oprefix, run_counter)
-            if not os.path.exists(odir):
-                os.makedirs(odir)
-            ofile = open(opj(odir, 'behavdata.txt'), 'w')
-            ow = csv.DictWriter(
-                    ofile,
-                    fieldnames=['run', 'run_id', 'volume', 'run_volume', 'stim',
-                                'genre', 'delay', 'catch', 'sound_soa',
-                                'trigger_ts'],
-                    quoting=csv.QUOTE_NONNUMERIC)
-            #ow.writeheader()
-            ow.writerow( dict((f,f) for f in ow.fieldnames))
-        ow.writerow(cur_trial)
-        cur_trial = None
+cond2id = dict(zip(condition_labels,
+                   ['cond%.3i' % (i + 1) for i, l in enumerate(condition_labels)]))
+
+print cond2id
+
+def fname2sid(filename):
+    test = os.path.split(filename)[1].split('.')[0]
+    return test
 
 
+def doit(anonid, outdir, task, model, logfile, cond_dict):
+    trigger = 0
+    run_trigger = 0
+    trigger_time = None
+    last_trigger_time = None
+    cur_trial = {}
+    run_counter = 0
+    onsets = None
+
+    behav_oprefix = opj(outdir, 'sub%.3i' % anonid, 'behav',
+                       'task%.3i_run' % (task,))
+    onset_oprefix = opj(outdir, 'sub%.3i' % anonid, 'model',
+                        'model%.3i' % model, 'onsets',
+                        'task%.3i_run' % (task,))
+    ow = None
+
+    for line in logfile:
+        l = line.split()
+        ts = float(l[0])
+        data = l[2:]
+        if data == ['Keypress:', 't']:
+            trigger_time = ts
+            if last_trigger_time:
+                dt = ts - last_trigger_time
+                if run_trigger != 0 and abs(2.0 - dt) > .02:
+                    print 'trigger anomaly:', trigger_time, dt, run_trigger
+            trigger += 1
+            run_trigger += 1
+            last_trigger_time = trigger_time
+        elif data == ['Started', 'presenting', 'run_start_fixation']:
+            run_trigger = 0
+            run_counter += 1
+            ow = None
+        elif data[:2] == ['New', 'trial']:
+            d = eval(''.join(data[4:]))
+            d['volume'] = trigger - 1
+            d['trigger_ts'] = trigger_time
+            d['run_volume'] = run_trigger - 1
+            cur_trial = d
+        elif not cur_trial is None and 'genre' in cur_trial and trigger and data[:2] == ['Sound', 'started']:
+            cur_trial['sound_soa'] = ts - cur_trial['trigger_ts']
+            cur_trial['run_id'] = cur_trial['run']
+            cur_trial['run'] = run_counter
+            del cur_trial['question']
+            if ow is None:
+                odir = '%s%.3i' % (behav_oprefix, run_counter)
+                if not os.path.exists(odir):
+                    os.makedirs(odir)
+                ofile = open(opj(odir, 'behavdata.txt'), 'w')
+                ow = csv.DictWriter(
+                        ofile,
+                        fieldnames=['run', 'run_id', 'volume', 'run_volume', 'stim',
+                                    'genre', 'delay', 'catch', 'sound_soa',
+                                    'trigger_ts'],
+                        quoting=csv.QUOTE_NONNUMERIC)
+                # new set of onset files needs to come
+                for c in cond_dict:
+                    ofname = '%s%.3i/%s.txt' % (onset_oprefix, run_counter,cond_dict[c])
+                    if os.path.exists(ofname):
+                        os.unlink(ofname)
+                #ow.writeheader()
+                ow.writerow( dict((f,f) for f in ow.fieldnames))
+            ow.writerow(cur_trial)
+            ofname = '%s%.3i/%s.txt' % (onset_oprefix, run_counter,cond_dict[cur_trial['genre']])
+            ofdir = os.path.dirname(ofname)
+            if not os.path.exists(ofdir):
+                os.makedirs(ofdir)
+            of = open(ofname, 'a')
+            of.write('%.2f\t6.0\t1.0\n' % ((cur_trial['run_volume']) * TR + cur_trial['sound_soa']))
+            of.close()
+            cur_trial = None
+
+##############################
+##############################
+##############################
+
+sid = fname2sid(logfilename)
+anonid = sid2anonid(sid)
+doit(anonid, outdir, task, model, open(logfilename), cond2id)
