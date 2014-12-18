@@ -30,13 +30,13 @@ for t in ir:
         continue
     run = int(d['run'])
     if not run == last_run:
-        odir = '%s%.3i' % (oprefix, run + 1)
+        odir = '%s%.3i' % (oprefix, done_runs + 1)
         if not os.path.exists(odir):
             os.makedirs(odir)
         ofile = open(opj(odir, 'behavdata.txt'), 'w')
         ow = csv.DictWriter(
                 ofile,
-                fieldnames=['run', 'volume', 'run_volume', 'stim',
+                fieldnames=['run', 'run_id', 'volume', 'run_volume', 'stim',
                             'genre', 'delay', 'catch', 'sound_soa',
                             'trigger_ts'],
                 quoting=csv.QUOTE_NONNUMERIC)
@@ -52,7 +52,8 @@ for t in ir:
     d['trigger_ts'] = None
     d['delay'] = int(d['delay'])
     d['catch'] = int(d['catch'])
-    d['run'] = run
+    d['run_id'] = run
+    d['run'] = done_runs
     run_counter[run] += 1
     ow.writerow(d)
 

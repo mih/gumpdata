@@ -9,6 +9,7 @@ run_trigger = 0
 trigger_time = None
 last_trigger_time = None
 cur_trial = {}
+run_counter = 0
 
 oprefix = sys.argv[1]
 ow = None
@@ -28,6 +29,7 @@ for line in sys.stdin:
         last_trigger_time = trigger_time
     elif data == ['Started', 'presenting', 'run_start_fixation']:
         run_trigger = 0
+        run_counter += 1
         ow = None
     elif data[:2] == ['New', 'trial']:
         d = eval(''.join(data[4:]))
@@ -37,15 +39,17 @@ for line in sys.stdin:
         cur_trial = d
     elif not cur_trial is None and 'genre' in cur_trial and trigger and data[:2] == ['Sound', 'started']:
         cur_trial['sound_soa'] = ts - cur_trial['trigger_ts']
+        cur_trial['run_id'] = cur_trial['run']
+        cur_trial['run'] = run_counter
         del cur_trial['question']
         if ow is None:
-            odir = '%s%.3i' % (oprefix, int(cur_trial['run']) + 1)
+            odir = '%s%.3i' % (oprefix, run_counter)
             if not os.path.exists(odir):
                 os.makedirs(odir)
             ofile = open(opj(odir, 'behavdata.txt'), 'w')
             ow = csv.DictWriter(
                     ofile,
-                    fieldnames=['run', 'volume', 'run_volume', 'stim',
+                    fieldnames=['run', 'run_id', 'volume', 'run_volume', 'stim',
                                 'genre', 'delay', 'catch', 'sound_soa',
                                 'trigger_ts'],
                     quoting=csv.QUOTE_NONNUMERIC)
