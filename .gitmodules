@@ -1,0 +1,3 @@
+[submodule "3rd/cili"]
+	path = 3rd/cili
+	url = https://github.com/beOn/cili.git
