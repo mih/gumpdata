@@ -1,0 +1,43 @@
+#!/usr/bin/python
+
+# This python script:
+## could be run from anywhere;
+## takes as input an anonimised ascii file (indicated using the absolute path);
+## extract blink timestamps from the data, calculate blink duration and report them in a 3-column ascii file indicating ;
+## calculate total amount of blinks and percentage of blinks and report them in a ascii file
+## the ascii files are stored in the output directory specified (using the absolute path) as the 2nd command line argument
+## usage:
+# qa_nan_and_blinks </path/to/input/directory/filename.asc> </path/to/output_directory/> 
+
+import pandas as pnd
+import numpy as np
+import matplotlib.pyplot as plt
+import sys
+
+# Import eyetracker I/O library:
+# https://github.com/beOn/cili
+from cili.util import *
+from cili.cleanup import *
+
+# Load the data from an eyelink: 
+in_file=sys.argv[1]
+samps,events=load_eyelink_dataset(in_file)
+out_dir=sys.argv[2]
+print "extracting information from: "+in_file
+
+# Extract blinks timestamps from the data
+raw_blinks=np.array(events.EBLINK.index)
+
+## Scale the blink timestamps to match the time origin of the samples
+the_blinks=raw_blinks - raw_blinks[0]
+
+# Extract blink durations and arrange the results in a single matrix
+out_m=np.vstack([raw_blinks,the_blinks,events.EBLINK.duration]).T
+out_amount=[out_m.shape[0], out_m.sum(axis=0)[2]/float(samps.shape[0])]
+
+out_file_name=out_dir+"blinks_timestamps.txt"
+out_amount_name=out_dir+"blinks_amount.txt"
+
+np.savetxt(out_file_name,out_m,fmt='%d')
+np.savetxt(out_amount_name,out_amount,fmt='%0.4f')
+print "DONE"
