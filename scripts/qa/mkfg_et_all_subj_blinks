@@ -1,0 +1,62 @@
+#!/usr/bin/python
+
+# This python script:
+## could be ran from anywhere;
+## takes as input:
+### (1) the absolute path of the root directory where the data are stored;
+### (2) a percentage, which will be the minimum amount of unavailable data to be reported in the table
+### (3) an output directory where the plot image will be saved
+## produces as output
+## (1) a boxplot with single participants distributions of unaivalable data
+## (2) a 4 column latex table on the standard output
+## usage:
+# qa_nan_and_blinks </path/to/input/directory/> <threshold> </path/to/output_directory/> 
+
+import pandas as pnd
+import numpy as np
+import matplotlib.pyplot as plt
+import sys
+import glob
+import os
+
+nodatalist=list()
+datalist=list()
+data_dir=sys.argv[1]
+dirlist=glob.glob(os.path.join(data_dir,"sub0*"))
+dirlist.sort()
+out_dir=sys.argv[3]
+thresh=sys.argv[2]
+for s in dirlist:
+	#print s
+	curr_part=s.split("/")[-1]
+	curr_em=(len(glob.glob(os.path.join(s,"eyemovements/*"))))
+	if curr_em < 8:
+		#print curr_em
+		nodatalist.append(curr_part[3:])
+	else:
+		runlist=glob.glob(os.path.join(s,"eyemovements/*"))
+		runlist.sort()
+		datalist.append(np.hstack([int(curr_part[-3:]), [np.loadtxt(i+"/qa/blinks_amount.txt")[1] for i in runlist]]))
+		#data_matr
+# Plots
+datalist=np.vstack(datalist).T
+plt.boxplot(datalist[1:,np.argsort(np.median(datalist[1:,:],axis=0))])
+plt.xticks(np.arange(1,16),1+np.argsort(np.median(datalist[1:,:],axis=0)))
+plt.ylabel("Fraction of unavailable data")
+plt.xlabel("Participants")
+plt.grid()
+plt.savefig(out_dir+"blinks.jpg")
+
+data_troubles=(np.argwhere(np.vstack(datalist)[1:,:].T>float(thresh)/100)+1)
+
+
+# Table
+
+print("\\begin{tabular}{llll}")
+print("Modality & Participant & Segment & Description \\\ ")
+print("EM &"+str(nodatalist)+" & 1-8 & No acquisition of eye movements data \\\ ")
+
+for t in np.unique(data_troubles[:,0]):
+	print ("EM & "+str(t)+" & "+str(data_troubles[data_troubles[:,0]==t,1]) +" & More than "+str(thresh)+"% of unavailable data \\\ ")
+
+print("\\end{tabular}")
