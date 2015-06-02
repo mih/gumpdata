@@ -1,22 +1,23 @@
 siftnfix_mag_phase () {
   # directory with the dicoms
   dcmdir=$1
-  # series number to work with
+  # series descr to work with
   series=$2
   # get the relevant dicoms out
   mkdir -p "fm_${series}_phase"
   mkdir -p "fm_${series}_mag"
   echo "START: scanning for fieldmap DICOMs"
-  for i in $dcmdir/*; do
+  pushd ${dcmdir}
+  for i in $(ls -1 | sort | tail -n 500); do
     # ignore any image that is not part of the requested series
-    [ "$(get_series_nmbr $i)" != "$series" ] && continue
+    [ "$(get_series_descr $i)" != "$series" ] && continue
     # what kind of image is it?
     magphase="$(get_mag_vs_phase $i)"
     # magnitude
-    if [ "$magphase" = 'M' ]; then ln -fs ../$i "fm_${series}_mag/"
+    if [ "$magphase" = 'M' ]; then ln -fs ../${dcmdir}/$i "../fm_${series}_mag/"
     # phase
     elif [ "$magphase" = 'P' -o "$magphase" = 'B0' ]; then
-      ln -fs ../$i "fm_${series}_phase/"
+      ln -fs ../${dcmdir}/$i "../fm_${series}_phase/"
       # 
       ss="$(get_scale_slope $i)"
       rs="$(get_rescale_slope $i)"
@@ -32,11 +33,16 @@ siftnfix_mag_phase () {
     else echo "WARN: neither magn nor phase image (maybe RAW?)"
     fi
   done
+  popd
   echo "DONE: scanning for fieldmap DICOMs"
 }
 
 get_series_nmbr () {
   dcmdump -s +L +M $1 +P '0020,0011' | sed -e "/\[/s/.*\[\(.*\)\]/\1/" -e 's/[ ]*#.*//g'
+}
+
+get_series_descr () {
+  dcmdump -s +L +M $1 +P '0008,103e' | sed -e "/\[/s/.*\[\(.*\)\]/\1/" -e 's/[ ]*#.*//g'
 }
 
 get_mag_vs_phase () {
@@ -81,7 +87,7 @@ convert_fieldmap () {
   getdeface $(find $niitmpdir -name '*field_map*.nii' | sort -n | head -n1) \
      ${wdir}/fm_mag.mat ${wdir}/fm_pha 0 0
   # convert from Hz to rad/sec
-  python -c "from numpy import pi; import nibabel as nb; img=nb.load(\"${wdir}/fm_pha_instd.nii\"); data = img.get_data(); data *= 2 * pi; nb.save(img, \"${wdir}/fm_pha_rad.nii.gz\")"
+  python -c "from numpy import pi; import nibabel as nb; img=nb.load(\"${wdir}/fm_pha_instd.nii\"); data = img.get_data(); data /= (2 * pi); nb.save(img, \"${wdir}/fm_pha_rad.nii.gz\")"
   export_defaced ${wdir}/fm_pha rad $destdir/fieldmap/fieldmap${outid}_pha
   rm -rf $niitmpdir
   echo "DONE fieldmap (series ${series})"

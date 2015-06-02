@@ -11,7 +11,7 @@ from gumpdata.utils import sid2anonid
 
 logfilename = sys.argv[1]
 outdir = sys.argv[2]
-model = 2
+model = 1
 task = 2
 TR = 2.0
 
