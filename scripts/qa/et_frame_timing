@@ -27,7 +27,7 @@ print "extracting information from: "+in_file
 raw_frames=np.array(events.MSG[events.MSG.label=='FIDX:'].index)
 
 # Scale the frame timestamps to match the time origin of the samples
-the_frames=raw_frames - samps.index[0]
+the_frames=raw_frames - raw_frames[0]
 
 # Extract frame lengths and arrange the results in a single matrix
 out_m=np.vstack([raw_frames,the_frames,np.hstack([0,np.diff(raw_frames)])]).T
