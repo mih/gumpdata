@@ -1,0 +1,43 @@
+#!/usr/bin/python
+
+# This python script:
+## could be run from anywhere;
+## takes as input an anonimised ascii file (indicated using the absolute path);
+## extract frames timestamps from the data and report them in a ascii file;
+## extract an histogram for frame durations and report them in a ascii file
+# usage:
+# et_frame_timing <filename> <output_directory> 
+
+import pandas as pnd
+import numpy as np
+import matplotlib.pyplot as plt
+import sys
+
+# Import eyetracker I/O library:
+# https://github.com/beOn/cili
+from cili.util import *
+from cili.cleanup import *
+
+# Load the data from an eyelink: 
+in_file=sys.argv[1]
+samps,events=load_eyelink_dataset(in_file)
+out_dir=sys.argv[2]
+print "extracting information from: "+in_file
+# Extract frames timestamps from the data
+raw_frames=np.array(events.MSG[events.MSG.label=='FIDX:'].index)
+
+# Scale the frame timestamps to match the time origin of the samples
+the_frames=raw_frames - samps.index[0]
+
+# Extract frame lengths and arrange the results in a single matrix
+out_m=np.vstack([raw_frames,the_frames,np.hstack([0,np.diff(raw_frames)])]).T
+
+# Calculate the histogram (100 bins, from 0 to 99)
+frame_hist=np.histogram(out_m[:,2],np.arange(100))[0]
+
+out_file_name=out_dir+"frame_sequence.txt"
+out_hist_name=out_dir+"frame_hist.txt"
+
+np.savetxt(out_file_name,out_m,fmt='%d')
+np.savetxt(out_hist_name,frame_hist,fmt='%d')
+print "DONE"
