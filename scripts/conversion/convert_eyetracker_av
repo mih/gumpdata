@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# This shell script:
+#- could be run from wherever;
+#- takes as input an eye tracker compressed ascii (.asc.gz) file (specifying its absolute path);
+#- gets the anonymised ID;
+#- cuts the first two lines of the original file;
+#- writes down a anonimised file into the anonymization directory using the anonimised filename.
+# - prints a line on the std_out with anonymised ID and run
+
+# Usage:
+# ./convert_eyetracker_av /path/to/filename.asc.gz
+
+# Parse relevant information from original filename
+raw_original_name=$(basename $1)
+original_id=${raw_original_name:0:4}
+the_run=${raw_original_name:5:3}
+
+# Extract the anonymised ID
+the_anon_id=$(/home/data/psyinf/forrest_gump/anon_id $original_id)
+
+# Creates the target directory according to anonimised information
+mkdir -p /home/data/psyinf/forrest_gump/anondata/sub$the_anon_id/eyetracker/task003_run$the_run/qa
+
+# Cut the first two lines of the file and redirect the output into a new file in the target directory
+zcat $1 | tail -n +3 > /home/data/psyinf/forrest_gump/anondata/sub$the_anon_id/eyetracker/task003_run$the_run/eyetracker.asc
+
+ls /home/data/psyinf/forrest_gump/anondata/sub$the_anon_id/eyetracker/task003_run$the_run
+echo $the_anon_id - $the_run DONE
