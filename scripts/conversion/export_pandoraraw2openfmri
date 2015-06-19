@@ -6,7 +6,7 @@ set -u
 ## physio data
 cat gumpdata/scripts/conversion/condor/export_pandora_physio.in > gumpdata/scripts/conversion/condor/export_pandora_physio
 for sid in $(anon_id list); do
-  [ -d pandora/data/$sid ] && printf "arguments = pandora/data/$sid/raw/physio anondata/sub$(anon_id $sid)/physio/task002 conversion.log\nqueue 1\n" >> gumpdata/scripts/conversion/condor/export_pandora_physio || true
+  [ -d pandora/data/$sid ] && printf "arguments = pandora/data/$sid/raw/physio incoming/sub$(anon_id $sid)/physio/task002 conversion.log\nqueue 1\n" >> gumpdata/scripts/conversion/condor/export_pandora_physio || true
 done
 condor_submit gumpdata/scripts/conversion/condor/export_pandora_physio
 rm gumpdata/scripts/conversion/condor/export_pandora_physio

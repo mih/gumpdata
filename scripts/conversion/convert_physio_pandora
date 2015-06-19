@@ -86,7 +86,9 @@ def proc_physio_run(data, expected_triggers, log):
     try:
         # cut timeseries from start to one trigger distance after the last
         max_duration = trigger_pos[-1] + trigger_dist
-        data = data[:, :max_duration]
+        if trigger_pos[0] > 0:
+            print >>log, "Stripping %i data samples before first trigger" % trigger_pos[0]
+        data = data[:, trigger_pos[0]:max_duration]
     except IndexError:
         print >>log, 'Not truncating the timeseries to incomplete trigger count'
 
