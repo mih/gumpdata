@@ -1,0 +1,110 @@
+#!/usr/bin/python
+"""
+Convert Philips physiology log files into a format suitable for noise modeling
+
+The challenge is that Philips log files do not contain information on the start
+of a volume acquisition (trigger). This information is necessary for
+physiological noise modeling of BOLD imaging data. Moreover, the log files also
+do not contain a reliable marker that indicated the start of the first scan
+volume.
+
+This converter uses the marker that indicates the end of a scan and
+reconstructs a trigger pulse train from a given TR value for any given number
+of volumes.
+
+Arguments:
+
+    1. volume repetition time in milliseconds (float)
+    2. number of volumes in scan (int)
+    3. input file name
+    4. output file name (compressed if ends with '.gz')
+
+The output file is a space-separated text file with one line per sample and
+three columns (all integer):
+
+    1. Trigger (1 for a pulse, 0 elsewhere)
+    2. Pleth pulse (PPU)
+    2. Respiration (resp)
+
+The sampling rate is alway 500 Hz, as in the original log file. Note, however,
+that the effective sampling rate is only 100 Hz.
+
+Example:
+
+    philipsphysioconv 2000 156 SCANPHYSLOG20140718114711.log.gz sub124.log.gz
+"""
+from __future__ import print_function
+
+import sys
+import fileinput
+import numpy as np
+
+# cmdline input
+try:
+    tr = float(sys.argv[1])  # should be in milliseconds
+    nvolumes = int(sys.argv[2])
+    infilename = sys.argv[3]
+    outfilename = sys.argv[4]
+except:
+    print(__doc__)
+    sys.exit(1)
+
+# convert settings
+ppu_column = 4
+resp_column = 5
+sampling_rate = 500  # Hz
+
+# helper
+sample_spacing = (1. / sampling_rate) * 1000  # in ms
+
+# collect samples from file
+ppu = []
+resp = []
+start_mark = False
+end_mark = False
+
+# every line in the file (compressed files supported)
+for i, line in enumerate(
+        fileinput.FileInput(
+            infilename,
+            openhook=fileinput.hook_compressed)):
+    if line.startswith(b'#'):
+        # ignore comment lines
+        continue
+    s = line.split()
+    mark = int(s[-1])
+    # detect the start mark -- everythin before that is pointless
+    if mark == 10:
+        #print('STARTMARK at line %i' % i, file=sys.stderr)
+        start_mark = True
+    # detect the end mark -- everything after that is ignored
+    elif start_mark and mark == 20:
+        #print('ENDMARK at line %i' % i, file=sys.stderr)
+        end_mark = True
+    if not start_mark:
+        # until we have the start mark, stop here
+        continue
+    # all values are INTs
+    ppu.append(int(s[ppu_column]))
+    resp.append(int(s[resp_column]))
+    # ignore end of file after scan stopped
+    if end_mark:
+        break
+
+# convert to numpy array
+data = np.zeros((len(ppu), 3), dtype=int)
+data[:, 1] = ppu
+data[:, 2] = resp
+
+# fill in trigger marks, starting at the end
+for i in range(nvolumes):
+    trigger_loc = int(round(((i + 1) * tr) / sample_spacing)) + 1
+    data[-trigger_loc, 0] = 1
+# truncate file to start and end of scan
+data = data[-trigger_loc:]
+
+# sanity check
+assert(np.sum(data[:, 0]) == nvolumes)
+
+# store
+np.savetxt(outfilename, data, fmt='%i')
