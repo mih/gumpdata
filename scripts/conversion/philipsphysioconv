@@ -78,7 +78,7 @@ for i, line in enumerate(
         #print('STARTMARK at line %i' % i, file=sys.stderr)
         start_mark = True
     # detect the end mark -- everything after that is ignored
-    elif start_mark and mark == 20:
+    elif start_mark and mark >= 20:
         #print('ENDMARK at line %i' % i, file=sys.stderr)
         end_mark = True
     if not start_mark:
