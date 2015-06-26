@@ -1,0 +1,41 @@
+universe = vanilla
+executable = /home/data/exppsy/forrest_gump/gumpdata/scripts/misc/correct_motion_task006
+output = /home/data/exppsy/forrest_gump/logs/$(CLUSTER).$(PROCESS).out
+error = /home/data/exppsy/forrest_gump/logs/$(CLUSTER).$(PROCESS).err
+log = /home/data/exppsy/forrest_gump/logs/$(CLUSTER).$(PROCESS).log
+initialdir = /home/data/exppsy/forrest_gump/anondata
+getenv = True
+request_cpus = 1
+request_memory = 2000
+
+arguments = 1 normmi
+queue
+arguments = 2 normcorr
+queue
+arguments = 3 normmi
+queue
+arguments = 4 normcorr
+queue
+arguments = 5 normmi
+queue
+arguments = 6 normmi
+queue
+arguments = 9 normcorr
+queue
+arguments = 10 normcorr
+queue
+arguments = 14 normmi
+queue
+arguments = 15 normmi
+queue
+arguments = 16 normcorr
+queue
+arguments = 17 normmi
+queue
+arguments = 18 normcorr
+queue
+arguments = 19 normmi
+queue
+arguments = 20 normmi
+queue
+

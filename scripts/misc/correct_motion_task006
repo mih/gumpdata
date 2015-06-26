@@ -1,0 +1,50 @@
+#!/bin/bash
+# Perform basic head movement correction on the task006 data
+# Yields
+# - corrected data
+# - movement estimates in TXT file
+# - estimates summary plot in PNG file
+# - tSNR volume
+
+. /etc/fsl/fsl.sh
+
+set -e
+set -u
+
+subj="$(zeropad $1 3)"
+cost="$2"
+
+reffile="sub${subj}/templates/bold3Tp2/brain.nii.gz"
+
+for run in 1 2 3 4; do
+    run_id="$(zeropad ${run} 3)"
+    infile="sub${subj}/BOLD/task006_run${run_id}/bold.nii.gz"
+    outfile="sub${subj}/BOLD/task006_run${run_id}/bold_moco_to_subjbold3Tp2"
+
+    fslmaths "$infile" -ing 1000 -range "$infile"_normed -odt short
+    mcflirt -in "$infile"_normed -reffile "$reffile" -out "$outfile" \
+            -cost "$cost" \
+            -bins 128 \
+            -rotation 2 \
+            -dof 6 \
+            -plots \
+            -stages 4 \
+            -sinc_final
+    # get the reference estimate from the first run/first volume to remove the
+    # common offset from the template
+    if [ "$run" = "1" ]; then
+        param_ref=`python -c "import numpy as np; d=np.loadtxt(\"sub${subj}/BOLD/task006_run${run_id}/bold_moco_to_subjbold3Tp2.par\"); print repr(d[0])" |tr '\n\t ' ' '`
+    fi
+
+    # rewrite the parameter estimates relative to the start of the first run
+    # and convert radians to degrees
+    python -c "import matplotlib; matplotlib.use('Agg'); import pylab as pl; from mvpa2.misc.fsl import McFlirtParams; import numpy as np; d=np.loadtxt(\"sub${subj}/BOLD/task006_run${run_id}/bold_moco_to_subjbold3Tp2.par\"); d-=np.${param_ref}; np.savetxt(\"sub${subj}/BOLD/task006_run${run_id}/bold_moco_to_subjbold3Tp2.txt\", d, fmt=\"%.7f\"); m=McFlirtParams(\"sub${subj}/BOLD/task006_run${run_id}/bold_moco_to_subjbold3Tp2.txt\"); m.plot(); pl.savefig(\"sub${subj}/BOLD/task006_run${run_id}/bold_moco_to_subjbold3Tp2.png\");  np.savetxt(\"sub${subj}/BOLD/task006_run${run_id}/bold_moco_to_subjbold3Tp2.txt\", np.hstack((d[:,3:],np.rad2deg(d[:,:3]))), fmt=\"%.7f\")"
+
+    # compute tSNR image
+    python -c "import nibabel as nb; import numpy as np; i=nb.load(\"${outfile}.nii.gz\"); d=i.get_data(); m=d.mean(axis=3); m=np.ma.array(m, mask=m==0); tsnr=m/d.std(axis=3); nb.save(nb.Nifti1Image(tsnr.astype('float32'), affine=i.get_affine()), \"${outfile}_tsnr.nii.gz\")"
+
+    # delete left-overs
+    rm sub${subj}/BOLD/task006_run${run_id}/bold_moco_to_subjbold3Tp2.par
+    rm ${infile}_normed.nii.gz
+done
+
