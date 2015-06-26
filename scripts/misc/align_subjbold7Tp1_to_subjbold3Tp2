@@ -1,0 +1,63 @@
+#!/bin/bash
+#
+# Align a subjects 7T BOLD template image to its 3T BOLD template
+# (and vice versa)
+#
+. /etc/fsl/fsl.sh
+
+set -e
+set -u
+
+sub="$(zeropad $1 3)"
+
+threedir="sub${sub}/templates/bold3Tp2"
+sevendir="sub${sub}/templates/bold7Tp1"
+
+flirt -in ${threedir}/brain.nii.gz \
+      -ref ${sevendir}/brain.nii.gz \
+      -omat ${threedir}/in_bold7Tp1/xfm_6dof.mat \
+      -out ${threedir}/in_bold7Tp1/brain.nii.gz \
+      -cost corratio \
+      -dof 6
+
+# QA images
+slicer ${threedir}/in_bold7Tp1/brain.nii.gz \
+       ${sevendir}/brain.nii.gz \
+       -a ${threedir}/in_bold7Tp1/7on3.png
+slicer ${sevendir}/brain.nii.gz \
+       ${threedir}/in_bold7Tp1/brain.nii.gz \
+       -a ${threedir}/in_bold7Tp1/3on7.png
+
+# project brain mask 3T -> 7T
+flirt -in ${threedir}/brain_mask.nii.gz \
+      -applyxfm -init ${threedir}/in_bold7Tp1/xfm_6dof.mat \
+      -out ${threedir}/in_bold7Tp1/brain_mask.nii.gz \
+      -interp nearestneighbour \
+      -ref ${sevendir}/brain.nii.gz
+
+# get inverse xfm: 7T -> 3T
+convert_xfm -omat ${sevendir}/in_bold3Tp2/xfm_6dof.mat \
+            -inverse ${threedir}/in_bold7Tp1/xfm_6dof.mat
+
+# project brain 7T -> 3T
+flirt -in ${sevendir}/brain.nii.gz \
+      -applyxfm -init ${sevendir}/in_bold3Tp2/xfm_6dof.mat \
+      -out ${sevendir}/in_bold3Tp2/brain.nii.gz \
+      -interp trilinear \
+      -ref ${threedir}/brain.nii.gz
+# project brain mask 7T -> 3T
+flirt -in ${sevendir}/brain_mask.nii.gz \
+      -applyxfm -init ${sevendir}/in_bold3Tp2/xfm_6dof.mat \
+      -out ${sevendir}/in_bold3Tp2/brain_mask.nii.gz \
+      -interp nearestneighbour \
+      -ref ${threedir}/brain.nii.gz
+
+# QA images
+slicer ${sevendir}/in_bold3Tp2/brain.nii.gz \
+       ${threedir}/brain.nii.gz \
+       -a ${sevendir}/in_bold3Tp2/3on7.png
+slicer ${threedir}/brain.nii.gz \
+       ${sevendir}/in_bold3Tp2/brain.nii.gz \
+       -a ${sevendir}/in_bold3Tp2/7on3.png
+
+
