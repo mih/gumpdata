@@ -1,0 +1,62 @@
+#!/bin/sh
+# Author: Michael Hanke <michael.hanke@gmail.com>
+# License: MIT
+
+set -e
+set -u
+
+if [ $# -ne 3 ]; then
+  cat << EOT
+This script implements MCFLIRT-based motion correction using an dedicated
+target image. The difference to using MCFLIRT's --reffile option is that
+an initial alignment to the target image can be performed with more
+flexibility. The actual motion correction is performed using the mean
+volume as a reference and a constant subsequent transformation to the
+final target is applied in addition. Each volume is transformed separately
+with a single interpolation/reslicing step that applies the combined
+transformations.
+
+Call this script with at least three arguments
+
+ 1. Input bold time series image
+ 2. Skull-stripped reference image
+ 3. Output filename for the motion-corrected time series image.
+
+(4) Options to FLIRT for the alignment to the target image. Default: "-dof 6"
+
+Examples:
+
+ $0 bold.nii.gz subjtmpl.nii.gz bold_mc.nii.gz "-dof 6 -cost normcorr"
+
+ $0 bold.nii.gz subjtmpl.nii.gz bold_mc.nii.gz "-dof 6 -cost normcorr"
+
+EOT
+  exit 1
+fi
+# fake test for FSL
+ignore=$FSLDIR
+
+inbold=$(readlink -f $1)
+ref=$(readlink -f $2)
+outbold=$(readlink -f $3)
+initflirtopts=${4:--dof 6}
+
+wdir=$(mktemp -d --suffix=2stagemc)
+cd "$wdir"
+
+$FSLDIR/bin/fslmaths "$inbold" -Tmean meanbold -odt input
+$FSLDIR/bin/bet meanbold.nii.gz meanbold_brain -F
+$FSLDIR/bin/flirt ${initflirtopts} -in meanbold_brain -ref "$ref" -omat meanbold2brain.mat
+$FSLDIR/bin/mcflirt -in "$inbold" -reffile meanbold_brain -mats -out mc
+for i in mc.mat/MAT*; do convert_xfm -omat mc.mat/tmpl_$(basename $i) -concat meanbold2brain.mat $i; done
+mkdir bold
+$FSLDIR/bin/fslsplit "$inbold" bold/
+mkdir mc
+for i in bold/*.nii*; do
+  bname=$(basename $i)
+  idx=${bname%.nii*}
+  $FSLDIR/bin/flirt -in "$i" -ref "$ref" -applyxfm -init mc.mat/tmpl_MAT_${idx} -out mc/${idx} -interp sinc; done
+$FSLDIR/bin/fslmerge -tr "$outbold" mc/* $(fslval "$inbold" pixdim4)
+
+cd -
+rm -rf "$wdir"
