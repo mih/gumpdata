@@ -1,0 +1,40 @@
+#!/usr/bin/python
+import sys
+import os
+fpath = sys.argv[1]
+
+import pandas
+import numpy as np
+from cili.util import load_eyelink_dataset
+samp, events = load_eyelink_dataset(fpath)
+# filter for spurious frame idx messages after the end of the recording
+frame_start = np.array([s for s in events.MSG[events.MSG.label == 'FIDX:'].index if s in samp.index])
+samp = samp.loc[frame_start[0]:frame_start[-1] + 100]
+fidx = np.zeros(len(samp), dtype='int')
+frame_start -= frame_start[0]
+for i, start in enumerate(frame_start):
+    fidx[start:] = i + 1
+# take any eye (there was only one recorded)
+if 'x_l' in samp.columns:
+    y_col = 'y_l'
+    coi = samp.loc[:, ['x_l', 'y_l', 'pup_l']]
+else:
+    y_col = 'y_r'
+    coi = samp.loc[:, ['x_r', 'y_r', 'pup_r']]
+merged = pandas.concat(
+    [coi,
+     pandas.DataFrame(dict(movie_frame=fidx), index=samp.index)],
+    axis=1)
+subjprefix = os.path.basename(fpath).split('_')[0]
+# quick test to be a bit more future-proof in detecting name changes
+assert(int(subjprefix.split('-')[1]) > 0)
+assert(len(subjprefix.split('-')[1]) == 2)
+if subjprefix in ('sub-02', 'sub-10', 'sub-20'):
+    # movie was centered for those
+    merged.loc[:, y_col] -= 239
+else:
+    merged.loc[:, y_col] -= 68
+path_comps = fpath.split('_')
+ofname='%s_recording-eyegaze_%s_physio.tsv' \
+        % ('_'.join(path_comps[:-2]), path_comps[-2])
+merged.to_csv(ofname, index=False, header=False, sep='\t')

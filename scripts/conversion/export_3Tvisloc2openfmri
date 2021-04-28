@@ -1,0 +1,25 @@
+#!/bin/bash
+#
+set -e
+set -u
+
+## physio data
+for sid in $(anon_id list); do
+	echo "Trying: $sid"
+	[ -d 3T_visloc/physio/${sid}* ] && echo "GOT IT" || continue
+	files="$(ls -1 3T_visloc/physio/${sid}* | sort -n | tail -n4)"
+	run=1
+	for f in $files; do
+		outdir="incoming/sub$(anon_id $sid)/physio/task006_run00$run"
+		mkdir -p "$outdir"
+		echo "$f -> run00$run"
+		philipsphysioconv 2000 156 3T_visloc/physio/${sid}*/$f ${outdir}/physio.txt.gz
+		run=$((run + 1))
+	done
+done
+
+# behavlog
+for i in 3T_visloc/behav/*.log; do
+	echo $i
+	PYTHONPATH=gumpdata/ gumpdata/scripts/conversion/convert_behavlog_visloc $i incoming/
+done

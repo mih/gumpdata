@@ -1,0 +1,31 @@
+#!/bin/sh
+
+for d in sub*/behav/task002_run*/behavdata.txt; do
+  sed -i \
+    -e 's/001\.wav/country_000.wav/g' \
+    -e 's/002\.wav/symphonic_000.wav/g' \
+    -e 's/003\.wav/rocknroll_000.wav/g' \
+    -e 's/004\.wav/ambient_000.wav/g' \
+    -e 's/005\.wav/ambient_001.wav/g' \
+    -e 's/006\.wav/metal_000.wav/g' \
+    -e 's/007\.wav/ambient_002.wav/g' \
+    -e 's/008\.wav/symphonic_001.wav/g' \
+    -e 's/009\.wav/country_001.wav/g' \
+    -e 's/010\.wav/metal_001.wav/g' \
+    -e 's/011\.wav/metal_002.wav/g' \
+    -e 's/012\.wav/rocknroll_001.wav/g' \
+    -e 's/013\.wav/metal_003.wav/g' \
+    -e 's/014\.wav/symphonic_002.wav/g' \
+    -e 's/015\.wav/symphonic_003.wav/g' \
+    -e 's/016\.wav/ambient_003.wav/g' \
+    -e 's/017\.wav/rocknroll_002.wav/g' \
+    -e 's/018\.wav/rocknroll_003.wav/g' \
+    -e 's/019\.wav/country_002.wav/g' \
+    -e 's/020\.wav/rocknroll_004.wav/g' \
+    -e 's/021\.wav/symphonic_004.wav/g' \
+    -e 's/022\.wav/metal_004.wav/g' \
+    -e 's/023\.wav/country_003.wav/g' \
+    -e 's/024\.wav/country_004.wav/g' \
+    -e 's/025\.wav/ambient_004.wav/g' \
+    $d
+done

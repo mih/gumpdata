@@ -1,0 +1,62 @@
+#!/usr/bin/python
+
+import os
+from os.path import join as _opj
+from mvpa2.datasets.sources import OpenFMRIDataset, mk_level1_fsf
+
+datapath = "/home/data/psyinf/forrest_gump/anondata"
+#datapath = "/home/mih/forrest/anondata"
+logpath = _opj(os.path.dirname(datapath), 'condor_logs')
+
+# dataset handler
+of = OpenFMRIDataset(datapath)
+
+model = 1
+# associated task
+task = set([c['task'] for c in of.get_model_conditions(model)])
+assert(len(task) == 1)
+task = list(task)[0]
+
+# preamble for a condor submit file
+print """
+universe = vanilla
+output = %(logpath)s/$(CLUSTER).$(PROCESS).out
+error = %(logpath)s/$(CLUSTER).$(PROCESS).err
+log = %(logpath)s/$(CLUSTER).$(PROCESS).log
+initialdir = %(datapath)s
+getenv = True
+request_cpus = 1
+request_memory = 4000
+should_transfer_files = NO
+transfer_executable = False
+executable = %(FSLDIR)s/bin/feat
+
+""" % dict(datapath=datapath, logpath=logpath, FSLDIR=os.environ['FSLDIR'])
+
+
+tbri = of.get_task_bold_run_ids(task)
+for sub, runs in tbri.iteritems():
+    for run in runs:
+        fsf_fname = mk_level1_fsf(
+            of,
+            model=model,
+            subj=sub,
+            task=task,
+            run=run,
+            bold_fname=_opj('%(subdir)s', 'BOLD', 'task%(task)03d_run%(run)03d',
+                'bold_dico.nii.gz'),
+            brain_img_fname=_opj('%(subdir)s', 'templates', 'bold7Tp1',
+                'brain.nii.gz'),
+            #brain_mask_fname=_opj('%(subdir)s', 'templates', 'bold3Tp2',
+            #    'brain_mask.nii.gz'),
+            #example_func_fname=_opj('%(subdir)s', 'templates', 'bold3Tp2',
+            #    'brain.nii.gz'),
+            confound_fname=_opj('%(subdir)s', 'BOLD',
+                'task%(task)03d_run%(run)03d', 'bold_dico_moco.txt'),
+            fsfstub_fname=_opj(datapath, 'models', 'model001',
+                '1st_lvl_fsf.stub'),
+            add_temporal_deriv=True,
+            smoothing_kernelsize=2.0,
+        )
+        print "arguments = %s\nqueue 1\n" % fsf_fname
+

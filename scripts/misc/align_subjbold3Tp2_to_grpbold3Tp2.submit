@@ -1,0 +1,42 @@
+universe = vanilla
+
+executable = /home/data/exppsy/forrest_gump/gumpdata/scripts/misc/align_subjbold3Tp2_to_grpbold3Tp2
+output = /home/data/exppsy/forrest_gump/logs/$(CLUSTER).$(PROCESS).out
+error = /home/data/exppsy/forrest_gump/logs/$(CLUSTER).$(PROCESS).err
+log = /home/data/exppsy/forrest_gump/logs/$(CLUSTER).$(PROCESS).log
+initialdir = /home/data/exppsy/forrest_gump/anondata
+getenv = True
+request_cpus = 1
+request_memory = 2000
+
+arguments = 1
+queue
+arguments = 2
+queue
+arguments = 3
+queue
+arguments = 4
+queue
+arguments = 5
+queue
+arguments = 6
+queue
+arguments = 9
+queue
+arguments = 10
+queue
+arguments = 14
+queue
+arguments = 15
+queue
+arguments = 16
+queue
+arguments = 17
+queue
+arguments = 18
+queue
+arguments = 19
+queue
+arguments = 20
+queue
+

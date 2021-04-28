@@ -1,0 +1,19 @@
+#!/usr/bin/python
+
+import os
+execfile(os.path.join(os.path.dirname(__file__), 'common_init.py'))
+
+print condor_submit_preamble
+print """
+request_cpus = 1
+request_memory = 2000
+executable = %(FSLDIR)s/bin/fast
+""" % dict(FSLDIR=os.environ['FSLDIR'])
+
+for sub in [i for i in of.get_subj_ids() if isinstance(i, int)]:
+    brain_path = _opj(datapath, 'sub%.3i' % sub, 'templates', 't1w',
+            'brain.nii.gz')
+    if not os.path.exists(brain_path):
+        continue
+    print "arguments = -B -g -p -o %s %s\nqueue 1\n" \
+            % (brain_path[:-7], brain_path,)

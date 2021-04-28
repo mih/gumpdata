@@ -1,0 +1,1 @@
+ in dcm/study_20140714_131258485/* ; do ln -f "$i" "love/${i#*.5.0.}"; done

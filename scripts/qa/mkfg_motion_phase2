@@ -1,0 +1,95 @@
+#!/usr/bin/python
+import os
+import sys
+import numpy as np
+import pylab as pl
+import gumpdata as gd
+from gumpdata.io.motion import get_run_motion_estimates, get_motion_estimates
+
+def mask_nan(x):
+    return np.ma.masked_array(x, np.isnan(x))
+
+def plot_motion(data, nvols, phantom=None, **kwargs):
+    data = np.apply_along_axis(np.linalg.norm, 2, data)
+    data = mask_nan(data)
+    x = range(data.shape[1])
+    md = np.mean(data, axis=0)
+    err = np.std(data, axis=0) / np.sqrt(len(data) - np.sum(np.isnan(data)))
+    pl.fill_between(x, np.max(data, axis=0), np.min(data, axis=0),
+                    color='0.8', lw=0, **kwargs)
+    pl.fill_between(x, md-err, md+err, color='0.6', lw=0, **kwargs)
+    #pl.plot(x, md, color='0.4', lw=1)
+    pl.plot(x, np.median(data, axis=0), color='0.3')
+    if not phantom is None:
+        normed_phantom = np.apply_along_axis(np.linalg.norm, 1, phantom)
+        pl.plot(x, normed_phantom, color='black')
+
+    run_label_y = np.max(data)
+    for i, run in enumerate(nvols[:-1]):
+        if i == 3:
+            ls = '-'
+        else:
+            ls = '--'
+        pl.axvline(np.sum(nvols[:i+1]), color='0.2', linestyle=ls)
+#        pl.text(np.sum(nvols[:i+1]) - nvols[i] / 2, run_label_y, 'r%i' % (i+1),
+#                horizontalalignment='center')
+#    pl.text(np.sum(nvols) - nvols[-1] / 2, run_label_y, 'r%i' % (len(nvols)),
+#            horizontalalignment='center')
+
+
+def load_data(datadir, excludes=None):
+    if excludes is None:
+        excludes = []
+    data = []
+    max_vols = []
+    # load data
+    subjs = sorted([s for s in gd.subjs_by_task[1] if not s in excludes and s[0].isdigit()])
+    print 'Loading subjects: %s' % subjs
+    for subj in subjs:
+        runs = []
+        for run in range(1,9):
+            d = get_run_motion_estimates(datadir, subj, 1, run)
+            runs.append(d)
+        data.append(runs)
+
+    # deal with missing values
+    for run in range(8):
+        max_vol = max([len(d[run]) for d in data])
+        max_vols.append(max_vol)
+        for subj in data:
+            if len(subj[run]) == max_vol:
+                continue
+            fixed_run = np.empty((max_vol,) + subj[run].shape[1:],
+                                 dtype=subj[run].dtype)
+            fixed_run[:] = np.nan
+            fixed_run[:len(subj[run])] = subj[run]
+            subj[run] = fixed_run
+        min_vol = min([len(d[run]) for d in data])
+
+    data = np.array([np.vstack(d) for d in data])
+    data = mask_nan(data)
+    return data, max_vols
+
+data, nvols = load_data(sys.argv[2], sys.argv[3:])
+phantom = get_motion_estimates(sys.argv[2], 'phantom', 1, truncate=0)
+
+
+pl.figure(figsize=(12, 5))
+ax = pl.subplot(211)
+plot_motion(data[...,:3], nvols, phantom=phantom[...,:3])
+pl.title('translation')
+xp, xl = pl.xticks()
+pl.xticks(xp, ['' for i in xl])
+pl.xlim((0, np.sum(nvols)))
+pl.ylim((0,7))
+pl.ylabel('estimate L2-norm in mm')
+
+ax = pl.subplot(212)
+plot_motion(data[...,3:], nvols, phantom=phantom[...,3:])
+pl.xlim((0, np.sum(nvols)))
+pl.ylim((0,5))
+pl.title('rotation')
+pl.ylabel('estimate L2-norm in deg')
+pl.xlabel('time in fMRI volumes')
+
+pl.savefig(sys.argv[1])

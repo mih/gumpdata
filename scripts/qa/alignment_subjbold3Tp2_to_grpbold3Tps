@@ -1,0 +1,24 @@
+#!/bin/bash
+
+. /etc/fsl/fsl.sh
+
+set -e
+set -u
+
+fslmerge -t templates/grpbold3Tp2/qa/aligned_subjbold3Tp2_lin \
+         sub*/templates/bold3Tp2/in_grpbold3Tp2/brain_lin.nii.gz
+fslmerge -t templates/grpbold3Tp2/qa/overlap_subjbold3Tp2_lin \
+         sub*/templates/bold3Tp2/in_grpbold3Tp2/brain_mask_lin.nii.gz
+fslmaths templates/grpbold3Tp2/qa/overlap_subjbold3Tp2_lin \
+         -Tmean \
+         templates/grpbold3Tp2/qa/overlap_subjbold3Tp2_lin \
+         -odt float
+
+fslmerge -t templates/grpbold3Tp2/qa/aligned_subjbold3Tp2_nonlin \
+         sub*/templates/bold3Tp2/in_grpbold3Tp2/brain_nonlin.nii.gz
+fslmerge -t templates/grpbold3Tp2/qa/overlap_subjbold3Tp2_nonlin \
+         sub*/templates/bold3Tp2/in_grpbold3Tp2/brain_mask_nonlin.nii.gz
+fslmaths templates/grpbold3Tp2/qa/overlap_subjbold3Tp2_nonlin \
+         -Tmean \
+         templates/grpbold3Tp2/qa/overlap_subjbold3Tp2_nonlin \
+         -odt float

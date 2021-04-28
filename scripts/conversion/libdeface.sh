@@ -9,8 +9,9 @@ export_defaced () {
   # $1 - basename
   # $2 - flavor -> $1_$2
   # $3 - destination
+  # $3 - mask destination
   $FSLDIR/bin/fslmaths ${1}_${2} -mul ${1}_defacemask $3 -odt input
-  $FSLDIR/bin/imcp ${1}_defacemask ${3}_defacemask
+  $FSLDIR/bin/imcp ${1}_defacemask ${4}
 }
 
 getdeface () {

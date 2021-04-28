@@ -1,0 +1,44 @@
+#!/bin/bash
+#
+# Align MNI masks for group space and individual templates
+#
+. /etc/fsl/fsl.sh
+
+set -e
+set -u
+
+
+datadir="$(pwd)"
+
+wdir="$(mktemp -d)"
+
+# compile list of interesting masks
+cd ${wdir}
+ln -s /usr/share/data/harvard-oxford-atlases/HarvardOxford/HarvardOxford-cortl-maxprob-thr25-1mm.nii.gz HarvardOxford-cortl-maxprob-thr25.nii.gz 
+
+for tmpl in bold3Tp2 bold7Tp1; do
+	grpdir="${datadir}/templates/grp${tmpl}"
+	mkdir -p ${grpdir}/masks
+	for mask in *; do
+		## get the atlas into group space
+		flirt -in ${mask} \
+			  -applyxfm -init ${grpdir}/xfm/mni2tmpl_12dof.mat \
+			  -out ${grpdir}/masks/${mask} \
+			  -interp nearestneighbour \
+			  -ref ${grpdir}/brain.nii.gz
+		# and into each individual subject's template
+		for subdir in ${datadir}/sub*/templates/${tmpl}/in_grp${tmpl}; do
+		   tdir="$(dirname ${subdir})"
+		   mkdir -p ${tdir}/masks
+		   applywarp \
+			  -i ${mask} \
+			  --premat="${grpdir}/xfm/mni2tmpl_12dof.mat" \
+			  -w ${subdir}/tmpl2subj_warp.nii.gz \
+			  -o ${tdir}/masks/${mask} \
+			  --interp=nn \
+			  -r ${tdir}/brain.nii.gz
+		done
+	done
+done
+
+rm -rf "${wdir}"

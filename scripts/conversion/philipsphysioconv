@@ -19,7 +19,7 @@ Arguments:
     3. input file name
     4. output file name (compressed if ends with '.gz')
 
-The output file is a space-separated text file with one line per sample and
+The output file is a tab-separated text file with one line per sample and
 three columns (all integer):
 
     1. Trigger (1 for a pulse, 0 elsewhere)
@@ -60,8 +60,7 @@ sample_spacing = (1. / sampling_rate) * 1000  # in ms
 # collect samples from file
 ppu = []
 resp = []
-start_mark = False
-end_mark = False
+end_mark = None
 
 # every line in the file (compressed files supported)
 for i, line in enumerate(
@@ -73,23 +72,17 @@ for i, line in enumerate(
         continue
     s = line.split()
     mark = int(s[-1])
-    # detect the start mark -- everythin before that is pointless
-    if mark == 10:
-        #print('STARTMARK at line %i' % i, file=sys.stderr)
-        start_mark = True
     # detect the end mark -- everything after that is ignored
-    elif start_mark and mark >= 20:
-        #print('ENDMARK at line %i' % i, file=sys.stderr)
-        end_mark = True
-    if not start_mark:
-        # until we have the start mark, stop here
-        continue
+    if mark >= 20 and mark < 100:
+        #print('ENDMARK at line %i (%s)' % (i, line), file=sys.stderr)
+        end_mark = i
     # all values are INTs
     ppu.append(int(s[ppu_column]))
     resp.append(int(s[resp_column]))
-    # ignore end of file after scan stopped
-    if end_mark:
-        break
+
+# truncate list to end with the data that carried the last end marker
+ppu = ppu[:end_mark + 1]
+resp = ppu[:end_mark + 1]
 
 # convert to numpy array
 data = np.zeros((len(ppu), 3), dtype=int)
@@ -107,4 +100,4 @@ data = data[-trigger_loc:]
 assert(np.sum(data[:, 0]) == nvolumes)
 
 # store
-np.savetxt(outfilename, data, fmt='%i')
+np.savetxt(outfilename, data, delimiter='\t', fmt='%i')

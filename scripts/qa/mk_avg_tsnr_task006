@@ -1,0 +1,78 @@
+#!/usr/bin/python
+#
+# Transform all run tSNR estimates into group space and compute
+# an average tSNR image
+#
+import matplotlib as mpl
+mpl.use('Agg')
+import sys
+import os
+from os.path import join as _opj
+from tempfile import mkdtemp
+import subprocess
+import shutil
+import numpy as np
+import nibabel as nb
+import pylab as pl
+import seaborn as sns
+from nipy.labs.viz import plot_map
+
+sids = [1, 2, 3, 4, 5, 6, 9, 10, 14, 15, 16, 17, 18, 19, 20]
+runs = [1, 2, 3, 4]
+
+tdir = mkdtemp()
+
+def warp_bold_img(subj, run, tdir):
+    orig_fname = "sub%.3i/BOLD/task006_run%.3i/bold_moco_to_subjbold3Tp2_tsnr.nii.gz" % (subj, run)
+    ref_fname = "templates/grpbold3Tp2/brain.nii.gz"
+    warp_fname = "sub%.3i/templates/bold3Tp2/in_grpbold3Tp2/subj2tmpl_warp.nii.gz" % subj
+    out_fname = _opj(tdir, 's%i_r%i_tsnr.nii.gz' % (subj, run))
+    subprocess.check_call(
+        ["applywarp",
+         "--in=%s" % orig_fname,
+         "--out=%s" % out_fname,
+         "--ref=%s" % ref_fname,
+         "--warp=%s" % warp_fname])
+    return out_fname
+
+tsnr = None
+affine = None
+count = 0
+for s in sids:
+    for r in runs:
+        fname = warp_bold_img(s, r, tdir)
+        img = nb.load(fname)
+        if tsnr is None:
+            tsnr = img.get_data().astype(float)
+            affine = img.get_affine()
+        else:
+            tsnr += img.get_data()
+        count += 1
+tsnr /= count
+
+
+mask = nb.load(_opj('templates', 'grpbold3Tp2', 'brain_mask.nii.gz'))
+
+# tSNR distribution
+pl.figure(figsize=(7,5))
+# it is so good, the default is enough
+sns.distplot(tsnr[mask.get_data() > 0])
+pl.xlim((0, tsnr.max()))
+pl.tight_layout()
+pl.savefig('task006_tsnr_hist.svg')
+
+fig = pl.figure()
+s=pl.subplot(212)
+plot_map(
+    tsnr, affine, annotate=True, slicer='z',
+    cut_coords=(-10,2,14,26,38,50),
+    draw_cross=False, cmap="BuGn",
+    vmin=0, vmax=tsnr.max(),
+    figure=fig, axes=s)
+img = pl.gca().get_images()[1]
+cbar_ax = fig.add_axes([0.05, 0.15, 0.05, 0.7])
+pl.colorbar(img, cax=cbar_ax);
+pl.savefig('task006_tsnr_cuts.svg')
+
+# cleanup
+shutil.rmtree(tdir)

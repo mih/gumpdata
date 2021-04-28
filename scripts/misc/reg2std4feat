@@ -1,0 +1,63 @@
+#!/bin/bash
+#
+# Usage: reg2std4feat <datadir> <inspace> <stdspace> <feat_dir> [<feat_dir> ...]
+#
+# Example: reg2std4feat anondata/ bold3Tp2 grpbold3Tp2 sub*_run*_testme.feat
+#
+# This script makes the assumption that there is no highres space, but
+# alignment was performed from BOLD directly to a group template (most
+# likely computed from BOLD as well)
+#
+
+set -e
+set -u
+
+datadir="$1"
+shift
+inspace="$1"
+shift
+stdspace="$1"
+shift
+
+for featdir in $@; do
+	subj="$(echo $featdir| sed -e 's/.*sub\([0-9]\+\).*/\1/g')"
+	subdir="${datadir}/sub${subj}"
+	# sane defaults
+	tmpl2std_mat="$FSLDIR/etc/flirtsch/ident.mat"
+	tmpl2std_warp=""
+	# cleanup existing standard space registration
+	[ -d "$featdir/reg_standard" ] && rm -rf "$featdir/reg_standard" || true
+	# place reg info in existing featdir in a way that featregapply would
+	# swallow it
+	regdir="$featdir/reg"
+	mkdir -p "$regdir"
+	# remove any possibly existing standard space setup
+	rm -rf "$regdir"/*standard*
+	if [ "$inspace" != "$stdspace" ]; then
+		xfmdir="$subdir/templates/$inspace/in_$stdspace"
+		# check that we have the xfm info
+		[ $(imtest "$xfmdir/head") -eq 1 ] && : || echo "cannot find transformation"
+		if [ -e "$xfmdir/xfm_12dof.mat" ]; then
+			tmpl2std_mat="$xfmdir/xfm_12dof.mat"
+		fi
+		if [ $(imtest "$xfmdir/subj2tmpl_warp") -eq 1 ]; then
+			tmpl2std_warp="$xfmdir/subj2tmpl_warp"
+		fi
+		imcp "$xfmdir/head" "$regdir/standard"
+	else
+		# we stay in the 
+		imcp "$subdir/templates/$inspace/brain" "$regdir/standard"
+	fi
+	if [ -e "$regdir/example_func2highres.mat" ]; then
+		convert_xfm -omat "$regdir/example_func2standard.mat" \
+			-concat "$tmpl2std_mat" \
+			"$regdir/example_func2highres.mat"
+	else
+		cp "$tmpl2std_mat" "$regdir/example_func2highres.mat"
+		cp "$tmpl2std_mat" "$regdir/example_func2standard.mat"
+	fi
+	if [ -n "$tmpl2std_warp" ]; then
+		imcp "$tmpl2std_warp" "$regdir/highres2standard_warp"
+	fi
+done
+

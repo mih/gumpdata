@@ -1,0 +1,72 @@
+#!/bin/bash
+#
+# Align a subjects 3T BOLD template image to the 3T group BOLD template
+#
+. /etc/fsl/fsl.sh
+
+set -e
+set -u
+
+sub="$(zeropad $1 3)"
+
+subjdir="sub${sub}/templates/bold3Tp2"
+grpdir="templates/grpbold3Tp2"
+
+flirt -in ${subjdir}/brain.nii.gz \
+      -ref ${grpdir}/brain.nii.gz \
+      -omat ${subjdir}/in_grpbold3Tp2/subj2tmpl.mat \
+      -out ${subjdir}/in_grpbold3Tp2/brain_lin.nii.gz \
+      -cost corratio \
+      -dof 12
+
+# QA images
+slicer ${subjdir}/in_grpbold3Tp2/brain_lin.nii.gz \
+       ${grpdir}/brain.nii.gz \
+       -e .1 \
+       -a ${subjdir}/in_grpbold3Tp2/tmplonsubj_lin.png
+slicer ${grpdir}/brain.nii.gz \
+       ${subjdir}/in_grpbold3Tp2/brain_lin.nii.gz \
+       -e .1 \
+       -a ${subjdir}/in_grpbold3Tp2/subjontmpl_lin.png
+
+fnirt --in=${subjdir}/head.nii.gz \
+      --ref=${grpdir}/head.nii.gz \
+      --aff=${subjdir}/in_grpbold3Tp2/subj2tmpl.mat \
+      --iout=${subjdir}/in_grpbold3Tp2/brain_nonlin.nii.gz \
+      --fout=${subjdir}/in_grpbold3Tp2/sub2tmpl_warp.nii.gz \
+      --intmod=global_non_linear_with_bias \
+      --subsamp=8,4,2,1 \
+      --reffwhm=8,4,0,0 \
+      --infwhm=10,5,4,0 \
+      --lambda=300,75,30,10 \
+      --warpres=30,30,30
+
+# QA images
+slicer ${subjdir}/in_grpbold3Tp2/brain_nonlin.nii.gz \
+       ${grpdir}/brain.nii.gz \
+       -e .1 \
+       -a ${subjdir}/in_grpbold3Tp2/tmplonsubj_nonlin.png
+slicer ${grpdir}/brain.nii.gz \
+       ${subjdir}/in_grpbold3Tp2/brain_nonlin.nii.gz \
+       -e .1 \
+       -a ${subjdir}/in_grpbold3Tp2/subjontmpl_nonlin.png
+
+## project brain mask
+flirt -in ${subjdir}/brain_mask.nii.gz \
+      -applyxfm -init ${subjdir}/in_grpbold3Tp2/subj2tmpl.mat \
+      -out ${subjdir}/in_grpbold3Tp2/brain_mask_lin.nii.gz \
+      -interp nearestneighbour \
+      -ref ${grpdir}/brain.nii.gz
+applywarp -i ${subjdir}/brain_mask.nii.gz \
+      -w ${subjdir}/in_grpbold3Tp2/sub2tmpl_warp.nii.gz \
+      -o ${subjdir}/in_grpbold3Tp2/brain_mask_nonlin.nii.gz \
+      --interp=nn \
+      -r ${grpdir}/brain.nii.gz
+
+# get inverse xfm
+convert_xfm -omat ${subjdir}/in_grpbold3Tp2/tmpl2subj.mat \
+            -inverse ${subjdir}/in_grpbold3Tp2/subj2tmpl.mat
+
+invwarp -w ${subjdir}/in_grpbold3Tp2/sub2tmpl_warp.nii.gz \
+        -o ${subjdir}/in_grpbold3Tp2/tmpl2subj_warp.nii.gz \
+        -r ${subjdir}/brain.nii.gz

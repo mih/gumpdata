@@ -2,7 +2,7 @@
 #
 # Synopsis:
 #
-#  convert_dicoms_phase2_movie <subject id> <anon id> <outdir>
+#  convert_dicoms_phase2_movie <p1 tarball> <p2 tarball> <outdir>
 #
 # Converts DICOMs from
 #
@@ -12,31 +12,10 @@ set -e
 set -u
 
 . /etc/fsl/fsl.sh
-. gumpdata/scripts/conversion/libdeface.sh
+. code/rawdata_conversion/libdeface.sh
 
 get_latest_file () {
    echo $(find "$1" -name "$2" | sort | tail -n1)
-}
-
-proc_fieldmap_bundle () {
-  tbn="$1"
-  destdir="$2"
-  subj="$3"
-  type="$4"
-  fid="$5"
-  basedir="$destdir/$type"
-  basename="fieldmap$(zeropad $fid 3)"
-  mkdir -p "$basedir"
-  inbase="${tbn%*.nii}"
-  #anon_txt ${inbase}_info.txt $basedir/${basename}_dicominfo.txt
-  getdeface ${inbase}.nii "" ${inbase} "1" "90"
-  export_defaced ${inbase} instd $basedir/${basename}
-  # beautify the image header based on protocol info (all hard coded)
-  python -c "import nibabel as nb; img=nb.load(\"${basedir}/${basename}.nii.gz\"); hdr=img.get_header(); hdr.set_xyzt_units(xyz='mm'); hdr['cal_min']=img.get_data().min(); hdr['cal_max']=img.get_data().max(); hdr['pixdim'][4]=0; hdr['descrip']='FOV=[240,240,165];FFE;dTE=2.3ms;flipangle=50;CLEAR=y'; hdr['aux_file']=''; img.to_filename(\"${basedir}/${basename}.nii.gz\")"
-  # split in mag and pha
-  fslroi $basedir/$basename $basedir/${basename}_mag 0 1
-  fslroi $basedir/$basename $basedir/${basename}_pha 1 1
-  rm $basedir/$basename.nii*
 }
 
 proc_fmri_bundle () {
@@ -46,43 +25,37 @@ proc_fmri_bundle () {
   type="$4"
   task="$5"
   run="$6"
-  basename="$7"
-  initmat="$8"
-  realign="$9"
-  sr="${10}"
-  basedir="$destdir/$type/task$(zeropad $task 3)_run$(zeropad $run 3)"
+  initmat="$7"
+  realign="$8"
+  sr="${9}"
+  basedir="$destdir/$type/"
+  basename="sub-${subj}_ses-movie_task-${task}_run-${run}"
   mkdir -p "$basedir"
   inbase="${tbn%*.nii}"
-  #anon_txt ${inbase}_info.txt $basedir/${basename}_dicominfo.txt
   getdeface ${inbase}.nii "${initmat}" ${inbase} "$realign" "$sr"
-  export_defaced ${inbase} instd $basedir/${basename}
+  export_defaced ${inbase} instd $basedir/${basename}_bold $basedir/${basename}_defacemask
   # beautify the image header based on protocol info (all hard coded)
-  python -c "import nibabel as nb; img=nb.load(\"${basedir}/${basename}.nii.gz\"); hdr=img.get_header(); hdr.set_dim_info(freq=0, phase=1, slice=2); hdr['slice_code'] = nb.nifti1.slice_order_codes['sequential increasing']; hdr.set_intent('time series', name='time series'); hdr.set_xyzt_units(xyz='mm', t='sec'); hdr.set_slice_duration(hdr['pixdim'][4]/hdr.get_n_slices()); hdr['slice_start']=0; hdr['slice_end']=34; hdr['cal_min']=img.get_data().min(); hdr['cal_max']=img.get_data().max(); hdr['descrip']='FOV=[240,240,115.2];SENSE=2;TE=30;flipangle=90;fatshift=12.5px;CLEAR=y'; hdr['aux_file']=''; img.to_filename(\"${basedir}/${basename}.nii.gz\")"
+  python -c "import nibabel as nb; img=nb.load(\"${basedir}/${basename}_bold.nii.gz\"); hdr=img.get_header(); hdr.set_dim_info(freq=0, phase=1, slice=2); hdr['slice_code'] = nb.nifti1.slice_order_codes['sequential increasing']; hdr.set_intent('time series', name='time series'); hdr.set_xyzt_units(xyz='mm', t='sec'); hdr.set_slice_duration(hdr['pixdim'][4]/hdr.get_n_slices()); hdr['slice_start']=0; hdr['slice_end']=34; hdr['cal_min']=img.get_data().min(); hdr['cal_max']=img.get_data().max(); hdr['descrip']='FOV=[240,240,115.2];SENSE=2;TE=30;flipangle=90;fatshift=12.5px;CLEAR=y'; hdr['aux_file']=''; img.to_filename(\"${basedir}/${basename}_bold.nii.gz\")"
 }
 ###############################################################################
 ###############################################################################
 ###############################################################################
 
-subj=$1
-anon_id=$(zeropad $2 3)
+subj="$(basename $1 | cut -f 1,1 -d _)"
+anon_id="$(../anon_id $subj)"
+anon_id=${anon_id:1:3}
 outdir=$(readlink -f "$3")
-dcmsrc="$(for src in $(ls -1 3T_av_et/mri/${subj}_*.tar* | sort |tail -n2); do readlink -f $src ; done)"
+dcmsrc="$(for src in $(ls -1 $1 $2 | sort |tail -n2); do readlink -f $src ; done)"
 niitmpdir='nii'
 curdir="$(pwd)"
-destdir="$outdir/sub$anon_id"
+destdir="$outdir/sub-$anon_id/ses-movie"
 wdir=$(mktemp -d)
 mkdir -p "$wdir"
 convcall="dcm2niix -o ${niitmpdir}"
 
-# directories to be filled
-for i in fieldmap; do
-  mkdir -p $destdir/$i
-done
-
 cd $wdir
 echo "Work directory: $(pwd)"
 # extract dicoms
-firstsession=1
 for dcm in ${dcmsrc}; do
 	echo "Unpack"
 	tar -xf ${dcm}
@@ -96,18 +69,12 @@ for dcm in ${dcmsrc}; do
 	## derive initial transform from scratch -- afterwards go incremental
 	for run in $(ls -1 ${srcdir}/*3mm_R*nii* | sed -e 's/.*3mm_R//' -e 's/_SENSE.*//' | sort| uniq); do
 		if [ $firstrun -eq 1 ]; then
-			proc_fmri_bundle "$(get_latest_file "${srcdir}" "*3mm_R${run}*.nii*")" $destdir $subj BOLD 3 ${run} bold '' 1 90
+			proc_fmri_bundle "$(get_latest_file "${srcdir}" "*3mm_R${run}*.nii*")" $destdir $anon_id functional movie ${run} '' 1 90
 		else
-			proc_fmri_bundle "$(get_latest_file "${srcdir}" "*3mm_R${run}*.nii*")" $destdir $subj BOLD 3 ${run} bold "${srcdir}/*3mm_R$((${run} - 1))*.mat" 1 10
+			proc_fmri_bundle "$(get_latest_file "${srcdir}" "*3mm_R${run}*.nii*")" $destdir $anon_id functional movie ${run} "${srcdir}/*3mm_R$((${run} - 1))*.mat" 1 10
 		fi
 		firstrun=0
 	done
-	if [ $firstsession -eq 1 ]; then
-		proc_fieldmap_bundle "$(get_latest_file "${srcdir}" "*WIP_field_map*.nii*")" $destdir $subj fieldmap 2
-	else
-		proc_fieldmap_bundle "$(get_latest_file "${srcdir}" "*WIP_field_map*.nii*")" $destdir $subj fieldmap 3
-	fi
-	firstsession=0
 	rm -rf ./*
 	ls -l
 done

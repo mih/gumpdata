@@ -1,0 +1,44 @@
+#!/usr/bin/python
+
+import os
+from os.path import join as _opj
+from mvpa2.datasets.sources import OpenFMRIDataset, mk_level2_fsf
+
+datapath = "/home/data/psyinf/forrest_gump/anondata"
+#datapath = "/home/mih/forrest/anondata"
+logpath = _opj(os.path.dirname(datapath), 'condor_logs')
+
+# dataset handler
+of = OpenFMRIDataset(datapath)
+
+model = 1
+task = 2
+
+# preamble for a condor submit file
+print """
+universe = vanilla
+output = %(logpath)s/$(CLUSTER).$(PROCESS).out
+error = %(logpath)s/$(CLUSTER).$(PROCESS).err
+log = %(logpath)s/$(CLUSTER).$(PROCESS).log
+initialdir = %(datapath)s
+getenv = True
+request_cpus = 1
+request_memory = 4000
+should_transfer_files = NO
+transfer_executable = False
+executable = %(FSLDIR)s/bin/feat
+
+""" % dict(datapath=datapath, logpath=logpath, FSLDIR=os.environ['FSLDIR'])
+
+tbri = of.get_task_bold_run_ids(task)
+for sub in tbri:
+    fsf_fname = mk_level2_fsf(
+        of,
+        model=model,
+        subj=sub,
+        fsfstub_fname=_opj(datapath, 'models', 'model001',
+            '2nd_lvl_fsf.stub'),
+    )
+    print "arguments = %s\nqueue 1\n" % fsf_fname
+
+

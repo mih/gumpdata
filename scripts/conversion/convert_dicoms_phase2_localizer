@@ -2,7 +2,7 @@
 #
 # Synopsis:
 #
-#  convert_dicoms_phase2_movie <subject id> <anon id> <outdir>
+#  convert_dicoms_localizersession <tarball> <outdir>
 #
 # Converts DICOMs from
 #
@@ -12,31 +12,10 @@ set -e
 set -u
 
 . /etc/fsl/fsl.sh
-. gumpdata/scripts/conversion/libdeface.sh
+. code/rawdata_conversion/libdeface.sh
 
 get_latest_file () {
    echo $(find "$1" -name "$2" | sort | tail -n1)
-}
-
-proc_fieldmap_bundle () {
-  tbn="$1"
-  destdir="$2"
-  subj="$3"
-  type="$4"
-  fid="$5"
-  basedir="$destdir/$type"
-  basename="fieldmap$(zeropad $fid 3)"
-  mkdir -p "$basedir"
-  inbase="${tbn%*.nii}"
-  #anon_txt ${inbase}_info.txt $basedir/${basename}_dicominfo.txt
-  getdeface ${inbase}.nii "" ${inbase} "1" "90"
-  export_defaced ${inbase} instd $basedir/${basename}
-  # beautify the image header based on protocol info (all hard coded)
-  python -c "import nibabel as nb; img=nb.load(\"${basedir}/${basename}.nii.gz\"); hdr=img.get_header(); hdr.set_xyzt_units(xyz='mm'); hdr['cal_min']=img.get_data().min(); hdr['cal_max']=img.get_data().max(); hdr['pixdim'][4]=0; hdr['descrip']='FOV=[240,240,165];FFE;dTE=2.3ms;flipangle=50;CLEAR=y'; hdr['aux_file']=''; img.to_filename(\"${basedir}/${basename}.nii.gz\")"
-  # split in mag and pha
-  fslroi $basedir/$basename $basedir/${basename}_mag 0 1
-  fslroi $basedir/$basename $basedir/${basename}_pha 1 1
-  rm $basedir/$basename.nii*
 }
 
 proc_fmri_bundle () {
@@ -46,38 +25,34 @@ proc_fmri_bundle () {
   type="$4"
   task="$5"
   run="$6"
-  basename="$7"
-  initmat="$8"
-  realign="$9"
-  sr="${10}"
-  basedir="$destdir/$type/task$(zeropad $task 3)_run$(zeropad $run 3)"
+  initmat="$7"
+  realign="$8"
+  sr="${9}"
+  basedir="$destdir/$type/"
+  basename="sub-${subj}_ses-localizer_task-${task}_run-${run}"
   mkdir -p "$basedir"
   inbase="${tbn%*.nii}"
-  #anon_txt ${inbase}_info.txt $basedir/${basename}_dicominfo.txt
   getdeface ${inbase}.nii "${initmat}" ${inbase} "$realign" "$sr"
-  export_defaced ${inbase} instd $basedir/${basename}
+  export_defaced ${inbase} instd $basedir/${basename}_bold $basedir/${basename}_defacemask
   # beautify the image header based on protocol info (all hard coded)
-  python -c "import nibabel as nb; img=nb.load(\"${basedir}/${basename}.nii.gz\"); hdr=img.get_header(); hdr.set_dim_info(freq=0, phase=1, slice=2); hdr['slice_code'] = nb.nifti1.slice_order_codes['sequential increasing']; hdr.set_intent('time series', name='time series'); hdr.set_xyzt_units(xyz='mm', t='sec'); hdr.set_slice_duration(hdr['pixdim'][4]/hdr.get_n_slices()); hdr['slice_start']=0; hdr['slice_end']=34; hdr['cal_min']=img.get_data().min(); hdr['cal_max']=img.get_data().max(); hdr['descrip']='FOV=[240,240,115.2];SENSE=2;TE=30;flipangle=90;fatshift=12.5px;CLEAR=y'; hdr['aux_file']=''; img.to_filename(\"${basedir}/${basename}.nii.gz\")"
+  python -c "import nibabel as nb; img=nb.load(\"${basedir}/${basename}_bold.nii.gz\"); hdr=img.get_header(); hdr.set_dim_info(freq=0, phase=1, slice=2); hdr['slice_code'] = nb.nifti1.slice_order_codes['sequential increasing']; hdr.set_intent('time series', name='time series'); hdr.set_xyzt_units(xyz='mm', t='sec'); hdr.set_slice_duration(hdr['pixdim'][4]/hdr.get_n_slices()); hdr['slice_start']=0; hdr['slice_end']=34; hdr['cal_min']=img.get_data().min(); hdr['cal_max']=img.get_data().max(); hdr['descrip']='FOV=[240,240,115.2];SENSE=2;TE=30;flipangle=90;fatshift=12.5px;CLEAR=y'; hdr['aux_file']=''; img.to_filename(\"${basedir}/${basename}_bold.nii.gz\")"
 }
 ###############################################################################
 ###############################################################################
 ###############################################################################
 
-subj=$1
-anon_id=$(zeropad $2 3)
-outdir=$(readlink -f "$3")
-dcmsrc="$(for src in $(ls -1 3T_visloc/mri/${subj}_*.tar* | sort |tail -n1); do readlink -f $src ; done)"
+dcmsrc="$(readlink -f $1)"
+subj="$(basename $dcmsrc | cut -f 1,1 -d _)"
+anon_id="$(../anon_id $subj)"
+anon_id=${anon_id:1:3}
+outdir=$(readlink -f "$2")
+
 niitmpdir='nii'
 curdir="$(pwd)"
-destdir="$outdir/sub$anon_id"
+destdir="$outdir/sub-$anon_id/ses-localizer"
 wdir=$(mktemp -d)
 mkdir -p "$wdir"
 convcall="dcm2niix -o ${niitmpdir}"
-
-# directories to be filled
-for i in fieldmap; do
-  mkdir -p $destdir/$i
-done
 
 cd $wdir
 echo "Work directory: $(pwd)"
@@ -90,16 +65,32 @@ mkdir -p ${niitmpdir}
 $convcall ${dcmdir}
 srcdir="${wdir}/${niitmpdir}"
 
-proc_fmri_bundle "$(get_latest_file "${srcdir}" "*3mm_movie*.nii*")" $destdir $subj BOLD 4 1 bold '' 1 90
-proc_fmri_bundle "$(get_latest_file "${srcdir}" "*3mm_RetMap1*.nii*")" $destdir $subj BOLD 5 1 bold "${srcdir}/*3mm_movie*.mat" 1 10
-proc_fmri_bundle "$(get_latest_file "${srcdir}" "*3mm_RetMap2*.nii*")" $destdir $subj BOLD 5 2 bold "${srcdir}/*3mm_RetMap1*.mat" 1 10
-proc_fmri_bundle "$(get_latest_file "${srcdir}" "*3mm_RetMap3*.nii*")" $destdir $subj BOLD 5 3 bold "${srcdir}/*3mm_RetMap2*.mat" 1 10
-proc_fmri_bundle "$(get_latest_file "${srcdir}" "*3mm_RetMap4*.nii*")" $destdir $subj BOLD 5 4 bold "${srcdir}/*3mm_RetMap3*.mat" 1 10
-proc_fmri_bundle "$(get_latest_file "${srcdir}" "*3mm_VisLoc1*.nii*")" $destdir $subj BOLD 6 1 bold "${srcdir}/*3mm_RetMap4*.mat" 1 10
-proc_fmri_bundle "$(get_latest_file "${srcdir}" "*3mm_VisLoc2*.nii*")" $destdir $subj BOLD 6 2 bold "${srcdir}/*3mm_VisLoc1*.mat" 1 10
-proc_fmri_bundle "$(get_latest_file "${srcdir}" "*3mm_VisLoc3*.nii*")" $destdir $subj BOLD 6 3 bold "${srcdir}/*3mm_VisLoc2*.mat" 1 10
-proc_fmri_bundle "$(get_latest_file "${srcdir}" "*3mm_VisLoc4*.nii*")" $destdir $subj BOLD 6 4 bold "${srcdir}/*3mm_VisLoc3*.mat" 1 10
+if [ -n "$(ls ${srcdir}/*RetMap*)" ]; then
+  proc_fmri_bundle "$(get_latest_file "${srcdir}" "*3mm_movie*.nii*")" $destdir $anon_id functional movielocalizer 1 '' 1 90
+  proc_fmri_bundle "$(get_latest_file "${srcdir}" "*3mm_RetMap1*.nii*")" $destdir $anon_id functional retmap 1 "${srcdir}/*3mm_movie*.mat" 1 10
+  proc_fmri_bundle "$(get_latest_file "${srcdir}" "*3mm_RetMap2*.nii*")" $destdir $anon_id functional retmap 2 "${srcdir}/*3mm_RetMap1*.mat" 1 10
+  proc_fmri_bundle "$(get_latest_file "${srcdir}" "*3mm_RetMap3*.nii*")" $destdir $anon_id functional retmap 3 "${srcdir}/*3mm_RetMap2*.mat" 1 10
+  proc_fmri_bundle "$(get_latest_file "${srcdir}" "*3mm_RetMap4*.nii*")" $destdir $anon_id functional retmap 4 "${srcdir}/*3mm_RetMap3*.mat" 1 10
+  proc_fmri_bundle "$(get_latest_file "${srcdir}" "*3mm_VisLoc1*.nii*")" $destdir $anon_id functional objectcategories 1 "${srcdir}/*3mm_RetMap4*.mat" 1 10
+  proc_fmri_bundle "$(get_latest_file "${srcdir}" "*3mm_VisLoc2*.nii*")" $destdir $anon_id functional objectcategories 2 "${srcdir}/*3mm_VisLoc1*.mat" 1 10
+  proc_fmri_bundle "$(get_latest_file "${srcdir}" "*3mm_VisLoc3*.nii*")" $destdir $anon_id functional objectcategories 3 "${srcdir}/*3mm_VisLoc2*.mat" 1 10
+  proc_fmri_bundle "$(get_latest_file "${srcdir}" "*3mm_VisLoc4*.nii*")" $destdir $anon_id functional objectcategories 4 "${srcdir}/*3mm_VisLoc3*.mat" 1 10
+elif [ -n "$(ls ${srcdir}/*VisLoc*)" ]; then
+  proc_fmri_bundle "$(get_latest_file "${srcdir}" "*3mm_movie*.nii*")" $destdir $anon_id functional movielocalizer 1 '' 1 90
+  proc_fmri_bundle "$(get_latest_file "${srcdir}" "*3mm_VisLoc1*.nii*")" $destdir $anon_id functional objectcategories 1 "${srcdir}/*3mm_movie*.mat" 1 10
+  proc_fmri_bundle "$(get_latest_file "${srcdir}" "*3mm_VisLoc2*.nii*")" $destdir $anon_id functional objectcategories 2 "${srcdir}/*3mm_VisLoc1*.mat" 1 10
+  proc_fmri_bundle "$(get_latest_file "${srcdir}" "*3mm_VisLoc3*.nii*")" $destdir $anon_id functional objectcategories 3 "${srcdir}/*3mm_VisLoc2*.mat" 1 10
+  proc_fmri_bundle "$(get_latest_file "${srcdir}" "*3mm_VisLoc4*.nii*")" $destdir $anon_id functional objectcategories 4 "${srcdir}/*3mm_VisLoc3*.mat" 1 10
+else
+  proc_fmri_bundle "$(get_latest_file "${srcdir}" "*401.nii*")" $destdir $anon_id functional retmap 1 '' 1 90
+  proc_fmri_bundle "$(get_latest_file "${srcdir}" "*501.nii*")" $destdir $anon_id functional retmap 2 "${srcdir}/*401*.mat" 1 10
+  proc_fmri_bundle "$(get_latest_file "${srcdir}" "*601.nii*")" $destdir $anon_id functional retmap 3 "${srcdir}/*501*.mat" 1 10
+  proc_fmri_bundle "$(get_latest_file "${srcdir}" "*701.nii*")" $destdir $anon_id functional retmap 4 "${srcdir}/*601*.mat" 1 10
+  proc_fmri_bundle "$(get_latest_file "${srcdir}" "*801.nii*")" $destdir $anon_id functional retmap 5 "${srcdir}/*701*.mat" 1 10
+  proc_fmri_bundle "$(get_latest_file "${srcdir}" "*901.nii*")" $destdir $anon_id functional retmap 6 "${srcdir}/*801*.mat" 1 10
+  proc_fmri_bundle "$(get_latest_file "${srcdir}" "*1001.nii*")" $destdir $anon_id functional retmap 7 "${srcdir}/*901*.mat" 1 10
+  proc_fmri_bundle "$(get_latest_file "${srcdir}" "*1101.nii*")" $destdir $anon_id functional retmap 8 "${srcdir}/*1001*.mat" 1 10
+fi
 
-proc_fieldmap_bundle "$(get_latest_file "${srcdir}" "*WIP_field_map*.nii*")" $destdir $subj fieldmap 4
 # orderly exit
 rm -rf $wdir
